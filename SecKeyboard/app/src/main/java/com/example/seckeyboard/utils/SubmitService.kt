@@ -9,7 +9,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-class ApduService : HostApduService() {
+class SubmitService : HostApduService() {
 
     companion object {
         const val TAG = "HCE_Service"

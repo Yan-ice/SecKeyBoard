@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
-import com.example.seckeyboard.utils.ApduService
+import com.example.seckeyboard.utils.SubmitService
 import com.example.seckeyboard.utils.SharedState
 
 class NfcActivity : ComponentActivity() {
@@ -76,7 +76,7 @@ class NfcActivity : ComponentActivity() {
         SharedState.currentStatus = "等待读卡器靠近..."
         SharedState.password = password
 
-        val component = ComponentName(this, ApduService::class.java)
+        val component = ComponentName(this, SubmitService::class.java)
         val cardEmulation = CardEmulation.getInstance(NfcAdapter.getDefaultAdapter(this))
         cardEmulation.setPreferredService(this, component)
     }
