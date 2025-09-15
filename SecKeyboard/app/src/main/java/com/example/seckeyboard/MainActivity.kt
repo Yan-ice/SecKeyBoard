@@ -81,6 +81,13 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         }) {
             Text("振动测试")
         }
+
+        Button(onClick = {
+            val intent = Intent(context, CertificateActivity::class.java)
+            context.startActivity(intent)
+        }) {
+            Text("证书读取测试")
+        }
     }
 }
 

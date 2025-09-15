@@ -16,11 +16,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.seckeyboard.protocol.InfoService
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.protocol.SubmitService
 import com.example.seckeyboard.protocol.SharedState
+import kotlinx.coroutines.delay
 
-class NfcActivity : ComponentActivity() {
+class CertificateActivity : ComponentActivity() {
     private var password: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +31,7 @@ class NfcActivity : ComponentActivity() {
         password = intent.getStringExtra("password")
 
         // 检查 NFC 是否启用
-        val nfcAdapter = android.nfc.NfcAdapter.getDefaultAdapter(this)
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
             Toast.makeText(this, "该设备不支持NFC", Toast.LENGTH_LONG).show()
             finish()
@@ -49,7 +51,7 @@ class NfcActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     while (true) {
                         displayText = SharedState.currentStatus
-                        kotlinx.coroutines.delay(500)
+                        delay(500)
                     }
                 }
 
@@ -61,7 +63,7 @@ class NfcActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("NFC 密钥交换演示", style = MaterialTheme.typography.headlineMedium)
+                        Text("证书读取演示", style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(displayText, style = MaterialTheme.typography.bodyLarge)
                     }
@@ -76,7 +78,7 @@ class NfcActivity : ComponentActivity() {
         SharedState.currentStatus = "等待读卡器靠近..."
         SharedState.password = password
 
-        val component = ComponentName(this, SubmitService::class.java)
+        val component = ComponentName(this, InfoService::class.java)
         val cardEmulation = CardEmulation.getInstance(NfcAdapter.getDefaultAdapter(this))
         cardEmulation.setPreferredService(this, component)
     }

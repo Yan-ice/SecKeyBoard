@@ -1,8 +1,9 @@
-package com.example.seckeyboard.utils
+package com.example.seckeyboard.protocol
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import android.util.Log
+import com.example.seckeyboard.protocol.SharedState
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPublicKey
 import javax.crypto.Cipher

@@ -21,6 +21,7 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.utils.DeviceHelper
+import com.example.seckeyboard.utils.NoiseHelper
 import kotlin.jvm.java
 
 class NumpadActivity : ComponentActivity() {
@@ -119,6 +120,7 @@ class NumpadActivity : ComponentActivity() {
 
             val pattern = DeviceHelper.buildVibrationPattern(listOf(numberA, numberB))
             vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            NoiseHelper.start(3000)
         } catch (e: Exception) {
             Log.e("Numpad", "振动失败", e)
         }

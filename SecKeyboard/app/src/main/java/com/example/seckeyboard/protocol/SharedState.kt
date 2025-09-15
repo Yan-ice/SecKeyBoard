@@ -1,4 +1,6 @@
-package com.example.seckeyboard.utils
+package com.example.seckeyboard.protocol
+
+import java.security.cert.X509Certificate
 
 object SharedState {
     @Volatile
@@ -9,4 +11,8 @@ object SharedState {
 
     @Volatile
     var password: String? = null
+
+    @Volatile
+    var certificate: X509Certificate? = null
+
 }

@@ -1,17 +1,14 @@
-package com.example.seckeyboard.utils
+package com.example.seckeyboard.protocol
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.example.seckeyboard.protocol.SharedState.certificate
+import com.example.seckeyboard.utils.CertificateHelper
 import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset
-import java.security.KeyPairGenerator
-import java.security.interfaces.RSAPublicKey
-import javax.crypto.Cipher
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 class InfoService : HostApduService() {
 
@@ -20,6 +17,7 @@ class InfoService : HostApduService() {
         val AID = "F020020521"
 
         // INS定义
+        private const val SELECT_AID: Byte = 0xA4.toByte()
         private const val INS_INIT: Byte = 0x10
         private const val INS_CONTINUE: Byte = 0x11
         private const val INS_END: Byte = 0x12
@@ -82,6 +80,7 @@ class InfoService : HostApduService() {
 
         return try {
             when (ins) {
+                SELECT_AID -> selectAid(data)
                 INS_INIT -> handleInit(data)
                 INS_CONTINUE -> handleContinue(data)
                 INS_END -> handleEnd(data)
@@ -96,6 +95,12 @@ class InfoService : HostApduService() {
             resetState()
             STATUS_FAILED
         }
+    }
+
+    private fun selectAid(data: ByteArray): ByteArray {
+        SharedState.currentStatus = "读卡器连接成功"
+        Log.d(SubmitService.Companion.TAG, "SELECT AID: ${SubmitService.Companion.STATUS_SUCCESS.joinToString(" ") { "%02X".format(it) }}")
+        return STATUS_SUCCESS
     }
 
     private fun handleInit(data: ByteArray): ByteArray {
@@ -253,7 +258,10 @@ class InfoService : HostApduService() {
 
         // 否则，可能是二进制 DER 公钥或证书摘要
         // TODO: 保存到文件 / 解析公钥
-        Log.i(TAG, "Received binary data (non-text). Save or parse as needed.")
+        Log.i(TAG, "Received binary data (non-text). Save or parse as needed:\n $maybeText")
+        SharedState.certificate = CertificateHelper.loadCertificateFromBytes(data)
+        certificate?.let { CertificateHelper.printCertificateInfo(TAG, it) }
+
     }
 
     /**

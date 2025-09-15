@@ -19,7 +19,7 @@
         tools:targetApi="31">
 
         <service
-            android:name=".utils.SubmitService"
+            android:name=".protocol.SubmitService"
             android:exported="true"
             android:permission="android.permission.BIND_NFC_SERVICE">
             <intent-filter>
@@ -29,6 +29,19 @@
             <meta-data
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/apduservice" />
+        </service>
+
+        <service
+            android:name=".protocol.InfoService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/infoservice" />
         </service>
 
         <activity
@@ -42,6 +55,9 @@
             android:exported="false" />
         <activity
             android:name=".NumpadActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CertificateActivity"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

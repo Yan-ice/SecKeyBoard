@@ -13,7 +13,7 @@ sudo apt-get install libccid
 
 安装其他内容:
 ```
-sudo apt-get install python3-dev libusb-dev libpcsclite-dev pcscd pcsc-tools pcscd
+sudo apt-get install python3-dev libusb-dev libpcsclite-dev pcscd pcsc-tools pcscd openssl
 sudo systemctl enable pcscd
 sudo systemctl start pcscd
 
