@@ -15,4 +15,7 @@ object SharedState {
     @Volatile
     var certificate: X509Certificate? = null
 
+    @Volatile
+    var serverDHkey: ByteArray ? = null
+
 }

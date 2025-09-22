@@ -61,7 +61,7 @@ class NfcActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("NFC 密钥交换演示", style = MaterialTheme.typography.headlineMedium)
+                        Text("靠近NFC发送密钥", style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(displayText, style = MaterialTheme.typography.bodyLarge)
                     }

@@ -1,5 +1,6 @@
 package com.example.seckeyboard.protocol
 
+import android.content.Intent
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import android.os.Handler
@@ -7,8 +8,12 @@ import android.os.Looper
 import android.util.Log
 import com.example.seckeyboard.protocol.SharedState.certificate
 import com.example.seckeyboard.utils.CertificateHelper
+import com.example.seckeyboard.utils.EventBroadcastHelper.INFO_FINISH_EVENT
+import com.example.seckeyboard.utils.EventBroadcastHelper.sendEvent
 import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset
+import java.security.PublicKey
+import java.security.Signature
 
 class InfoService : HostApduService() {
 
@@ -20,11 +25,13 @@ class InfoService : HostApduService() {
         private const val SELECT_AID: Byte = 0xA4.toByte()
         private const val INS_INIT: Byte = 0x10
         private const val INS_CONTINUE: Byte = 0x11
-        private const val INS_END: Byte = 0x12
-        private const val INS_STATUS: Byte = 0x13
+        private const val INS_END_WITH_CERT: Byte = 0x12 // finish transfer, and the transfer item is CERT.
+        private const val INS_END_WITH_DH: Byte = 0x13 // finish transfer, and the transfer item is ECDH pub
+        private const val INS_END_WITH_DH_SIG: Byte = 0x14 // finish transfer, and the transfer item is ECDH pub
+        private const val INS_STATUS: Byte = 0x20
 
         // ISO-like 状态字（SW1 SW2）
-        private val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00.toByte())
+        private val STATUS_SUCCESS = byteArrayOf(0x23.toByte(), 0x23.toByte(), 0x23.toByte(), 0x90.toByte(), 0x00.toByte())
         private val STATUS_FAILED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
         private val STATUS_BAD_PARAM = byteArrayOf(0x6A.toByte(), 0x80.toByte())
         private val STATUS_MORE_DATA_PREFIX = 0x61.toByte() // 0x61 XX
@@ -32,6 +39,7 @@ class InfoService : HostApduService() {
         // 超时与包大小限制
         private const val RECEIVE_TIMEOUT_MS = 30_000L
         private const val MAX_TOTAL_SIZE = 10 * 1024 // 安全上限制：最大 10 KB（根据需要调整）
+
     }
 
     // 用于重组接收数据
@@ -83,7 +91,9 @@ class InfoService : HostApduService() {
                 SELECT_AID -> selectAid(data)
                 INS_INIT -> handleInit(data)
                 INS_CONTINUE -> handleContinue(data)
-                INS_END -> handleEnd(data)
+                INS_END_WITH_CERT -> handleEnd(data, INS_END_WITH_CERT)
+                INS_END_WITH_DH -> handleEnd(data, INS_END_WITH_DH)
+                INS_END_WITH_DH_SIG -> handleEnd(data, INS_END_WITH_DH_SIG)
                 INS_STATUS -> handleStatus()
                 else -> {
                     Log.w(TAG, "Unknown INS: %02X".format(ins))
@@ -183,7 +193,7 @@ class InfoService : HostApduService() {
         return STATUS_SUCCESS
     }
 
-    private fun handleEnd(data: ByteArray): ByteArray {
+    private fun handleEnd(data: ByteArray, type: Byte): ByteArray {
         // END: 最后一个 chunk 也可能随 END 一起发送（data = [seq?, chunk...])
         if (!receiving) {
             Log.w(TAG, "END received but not in receiving state")
@@ -213,7 +223,11 @@ class InfoService : HostApduService() {
         // 完整数据到达，调用处理器
         val receivedBytes = buffer.toByteArray()
         try {
-            onComplete(receivedBytes)
+            when (type) {
+                INS_END_WITH_CERT -> onCertComplete(receivedBytes);
+                INS_END_WITH_DH -> onDHComplete(receivedBytes);
+                INS_END_WITH_DH_SIG -> onDHSigComplete(receivedBytes);
+            }
         } catch (e: Exception) {
             Log.e(TAG, "onComplete handler failed", e)
             resetState()
@@ -245,23 +259,66 @@ class InfoService : HostApduService() {
      * 处理已经完整接收的数据
      * 这里示例把数据当作 UTF-8 JSON 展示；你可以改为解析 DER / 二进制公钥或其他格式。
      */
-    private fun onComplete(data: ByteArray) {
-        Log.i(TAG, "Complete data received, len=${data.size}")
+    private fun onCertComplete(data: ByteArray) {
+        Log.i(TAG, "Certificate received, len=${data.size}")
 
         // 尝试当作 JSON 文本解析（如果是文本）
-        val maybeText = try { String(data, Charset.forName("UTF-8")) } catch (e: Exception) { null }
-        if (!maybeText.isNullOrEmpty() && (maybeText.trim().startsWith("{") || maybeText.trim().startsWith("["))) {
-            Log.i(TAG, "Received JSON:\n$maybeText")
-            // TODO: parse JSON, validate fingerprint, 校验签名，或保存到文件等
-            return
-        }
+//        val maybeText = try { String(data, Charset.forName("UTF-8")) } catch (e: Exception) { null }
+//        if (!maybeText.isNullOrEmpty() && (maybeText.trim().startsWith("{") || maybeText.trim().startsWith("["))) {
+//            Log.i(TAG, "Received JSON:\n$maybeText")
+//            // TODO: parse JSON, validate fingerprint, 校验签名，或保存到文件等
+//            return
+//        }
 
         // 否则，可能是二进制 DER 公钥或证书摘要
         // TODO: 保存到文件 / 解析公钥
-        Log.i(TAG, "Received binary data (non-text). Save or parse as needed:\n $maybeText")
         SharedState.certificate = CertificateHelper.loadCertificateFromBytes(data)
         certificate?.let { CertificateHelper.printCertificateInfo(TAG, it) }
+    }
+    /**
+     * 处理已经完整接收的数据
+     * 这里示例把数据当作 UTF-8 JSON 展示；你可以改为解析 DER / 二进制公钥或其他格式。
+     */
+    private fun onDHComplete(data: ByteArray) {
+        Log.i(TAG, "DH key received, len=${data.size}")
 
+        // 尝试当作 JSON 文本解析（如果是文本）
+//        val maybeText = try { String(data, Charset.forName("UTF-8")) } catch (e: Exception) { null }
+//        if (!maybeText.isNullOrEmpty() && (maybeText.trim().startsWith("{") || maybeText.trim().startsWith("["))) {
+//            Log.i(TAG, "Received JSON:\n$maybeText")
+//            // TODO: parse JSON, validate fingerprint, 校验签名，或保存到文件等
+//            return
+//        }
+
+        // 否则，可能是二进制 DER 公钥或证书摘要
+        // TODO: 保存到文件 / 解析公钥
+        SharedState.serverDHkey = data
+//        certificate?.let { CertificateHelper.printCertificateInfo(TAG, it) }
+    }
+
+    private fun onDHSigComplete(data: ByteArray) {
+        Log.i(TAG, "DH signature received, len=${data.size}")
+
+        // 否则，可能是二进制 DER 公钥或证书摘要
+        // TODO: 保存到文件 / 解析公钥
+        val signature = data
+        try {
+            val publicKey: PublicKey = SharedState.certificate?.publicKey!!
+            val verif_sig = Signature.getInstance("SHA256withRSA")
+            verif_sig.initVerify(publicKey)
+            verif_sig.update(SharedState.serverDHkey)
+            verif_sig.verify(signature)
+            Log.d(TAG, "Signature verify success.")
+
+            sendEvent(this, INFO_FINISH_EVENT)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.d(TAG, "Signature verify failed.")
+        }
+
+//        SharedState.certificate = CertificateHelper.loadCertificateFromBytes(data)
+//        certificate?.let { CertificateHelper.printCertificateInfo(TAG, it) }
     }
 
     /**

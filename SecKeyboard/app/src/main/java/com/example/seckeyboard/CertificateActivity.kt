@@ -20,6 +20,8 @@ import com.example.seckeyboard.protocol.InfoService
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.protocol.SubmitService
 import com.example.seckeyboard.protocol.SharedState
+import com.example.seckeyboard.utils.EventBroadcastHelper
+import com.example.seckeyboard.utils.EventBroadcastHelper.INFO_FINISH_EVENT
 import kotlinx.coroutines.delay
 
 class CertificateActivity : ComponentActivity() {
@@ -28,7 +30,14 @@ class CertificateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        password = intent.getStringExtra("password")
+        EventBroadcastHelper.register(this) {
+            evt -> {
+                if(evt == INFO_FINISH_EVENT) {
+                    val intent = Intent(this@CertificateActivity, NumpadActivity::class.java)
+                    startActivity(intent)
+                }
+            }
+        }
 
         // 检查 NFC 是否启用
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -63,7 +72,7 @@ class CertificateActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("证书读取演示", style = MaterialTheme.typography.headlineMedium)
+                        Text("靠近NFC打开键盘", style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(displayText, style = MaterialTheme.typography.bodyLarge)
                     }

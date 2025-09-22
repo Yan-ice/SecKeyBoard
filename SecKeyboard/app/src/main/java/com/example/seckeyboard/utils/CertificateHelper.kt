@@ -120,6 +120,24 @@ object CertificateHelper {
                 san.forEach { Log.i(tag, "  $it") }
             }
 
+            // 获取非关键扩展 OID
+            val nonCriticalOids = cert.nonCriticalExtensionOIDs
+            Log.i(tag, "Non-critical OIDs: $nonCriticalOids")
+            // 获取关键扩展 OID
+            val criticalOids = cert.criticalExtensionOIDs
+            Log.i(tag, "Critical OIDs: $criticalOids")
+
+            for (oid in nonCriticalOids.orEmpty() + criticalOids.orEmpty()) {
+                val extValue = cert.getExtensionValue(oid)  // 返回 ASN.1 DER 编码的 OCTET STRING
+                if (extValue != null && extValue.size > 2) {
+                    // 跳过外层的 04 和长度字节
+                    val inner = extValue.copyOfRange(2, extValue.size)
+
+                    val parsed: String = java.math.BigInteger(inner).toString()
+
+                    Log.i(tag, "Extension $oid parsed: $parsed")
+                }
+            }
         } catch (e: Exception) {
             Log.e(tag, "Failed to print certificate info", e)
         }
