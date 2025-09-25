@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 
 object EventBroadcastHelper {
 
@@ -16,7 +17,6 @@ object EventBroadcastHelper {
      */
     fun sendEvent(context: Context, event: String) {
         val intent = Intent(event)
-//      intent.putExtra("message", message)
         context.sendBroadcast(intent)
     }
 
@@ -30,14 +30,19 @@ object EventBroadcastHelper {
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == ACTION_EVENT) {
+                if (intent?.action == INFO_FINISH_EVENT) {
                     val msg = intent.getStringExtra("message") ?: ""
                     callback(msg)
                 }
             }
         }
-        val filter = IntentFilter(ACTION_EVENT)
-        context.registerReceiver(receiver, filter)
+        val filter = IntentFilter(INFO_FINISH_EVENT)
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
     /**

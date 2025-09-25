@@ -41,10 +41,10 @@ def new_session(session_id, connection):
     server_ecdh_private = ec.generate_private_key(ec.SECP256R1())
     server_ecdh_public = server_ecdh_private.public_key()
 
-    # 导出ECDH公钥为字节 (UncompressedPoint)
+    # 导出ECDH公钥为字节 (X.509)
     server_pub_bytes = server_ecdh_public.public_bytes(
-        serialization.Encoding.X962,
-        serialization.PublicFormat.UncompressedPoint
+	serialization.Encoding.DER,
+	serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
     # 用证书私钥对临时公钥签名
@@ -57,6 +57,7 @@ def new_session(session_id, connection):
     payload = {
         "session_id": session_id,
         "connection": connection,
+        "server_priv_edch_key": server_ecdh_private,
         "server_pub_edch": server_pub_bytes,
         "server_pub_edch_signature": signature,
         "server_cert_der": cert_bytes,
@@ -72,6 +73,10 @@ def continue_session(session_id, connection):
         new_session(session_id, connection)
     else:  
         SESSION_INFO[session_id]["connection"] = connection
+
+def kill_session(session_id):
+    if session_id in SESSION_INFO:
+        SESSION_INFO[session_id]["connection"].disconnect()
 
 def get_session_info(session_id):
     return SESSION_INFO[session_id]

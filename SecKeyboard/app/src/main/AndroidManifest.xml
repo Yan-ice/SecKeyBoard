@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
 
@@ -19,29 +20,18 @@
         tools:targetApi="31">
 
         <service
-            android:name=".protocol.SubmitService"
+            android:name=".protocol.NfcService"
+            android:foregroundServiceType="connectedDevice"
             android:exported="true"
             android:permission="android.permission.BIND_NFC_SERVICE">
+
             <intent-filter>
                 <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
             </intent-filter>
 
             <meta-data
                 android:name="android.nfc.cardemulation.host_apdu_service"
-                android:resource="@xml/apduservice" />
-        </service>
-
-        <service
-            android:name=".protocol.InfoService"
-            android:exported="true"
-            android:permission="android.permission.BIND_NFC_SERVICE">
-            <intent-filter>
-                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
-            </intent-filter>
-
-            <meta-data
-                android:name="android.nfc.cardemulation.host_apdu_service"
-                android:resource="@xml/infoservice" />
+                android:resource="@xml/nfcservice" />
         </service>
 
         <activity
@@ -55,9 +45,6 @@
             android:exported="false" />
         <activity
             android:name=".NumpadActivity"
-            android:exported="false" />
-        <activity
-            android:name=".CertificateActivity"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

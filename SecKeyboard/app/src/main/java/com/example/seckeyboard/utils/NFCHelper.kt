@@ -1,37 +1,44 @@
 package com.example.seckeyboard.utils
 
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import com.example.seckeyboard.protocol.InfoService
-import com.example.seckeyboard.protocol.InfoService.Companion.TAG
+import com.example.seckeyboard.protocol.NfcService.Companion.TAG
 
 import com.example.seckeyboard.protocol.SharedState
-import com.example.seckeyboard.protocol.SubmitService
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset
 
 object NFCHelper {
 
-    // 超时与包大小限制
-    private const val RECEIVE_TIMEOUT_MS = 30_000L
+    // 包大小限制
     private const val MAX_TOTAL_SIZE = 10 * 1024 // 安全上限制：最大 10 KB（根据需要调整）
 
     // INS定义
     private const val SELECT_AID: Byte = 0xA4.toByte()
-    private const val INS_INIT: Byte = 0x10
-    private const val INS_CONTINUE: Byte = 0x11
-    private const val INS_END_WITH_CERT: Byte = 0x12 // finish transfer, and the transfer item is CERT.
-    private const val INS_END_WITH_DH: Byte = 0x13 // finish transfer, and the transfer item is ECDH pub
-    private const val INS_END_WITH_DH_SIG: Byte = 0x14 // finish transfer, and the transfer item is ECDH pub
-    private const val INS_STATUS: Byte = 0x20
+
+    private const val INS_RECV_INIT: Byte = 0xD0.toByte()
+    private const val INS_RECV_CONTINUE: Byte = 0xD1.toByte()
+    const val INS_RECV_END: Byte = 0xD2.toByte()
+    const val INS_SEND_INIT: Byte = 0xB0.toByte()
+    private const val INS_SEND_CONTINUE: Byte = 0xB1.toByte()
+
+    const val INS_RECV_TYPE_CERT: Byte = 0x01 //param
+    const val INS_RECV_TYPE_DH: Byte = 0x02 //param
+    const val INS_RECV_TYPE_DH_SIG: Byte = 0x03 //param
+
+
+    const val INS_SEND_TYPE_DH: Byte = 0x01 //param
+
+    private const val INS_STATUS: Byte = 0x40
 
     // ISO-like 状态字（SW1 SW2）
-    private val STATUS_SUCCESS = byteArrayOf(0x23.toByte(), 0x23.toByte(), 0x23.toByte(), 0x90.toByte(), 0x00.toByte())
+    val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00.toByte())
+    val STATUS_NOT_PREPARED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
+
     private val STATUS_FAILED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
     private val STATUS_BAD_PARAM = byteArrayOf(0x6A.toByte(), 0x80.toByte())
     private val STATUS_MORE_DATA_PREFIX = 0x61.toByte() // 0x61 XX
+
 
     // 用于重组接收数据
     @Volatile
@@ -41,51 +48,46 @@ object NFCHelper {
     private var expectedTotalLength: Int? = null // 可选，INIT 包里发送
     private var lastSeq: Int = -1
 
-    // 超时处理
-    private val handler = Handler(Looper.getMainLooper())
+    // 用于重组发送数据
+    @Volatile
+    private var sending = false
 
-    private val resetRunnable = Runnable {
-        resetState()
-    }
+    private var buffer_o = ByteArrayInputStream(byteArrayOf(0x00.toByte()))
+    private var lastSeq_o: Int = -1
 
-    fun processCommandApdu(commandApdu: ByteArray?, callback: (Byte, ByteArray) -> Unit): ByteArray {
+    //处理NFC包请求，如果有一个完整的包被处理，callback将会被调用。
+    // callback格式： ins, param, data，分别对应apdu的第二字节、第三字节(p1)、extend部分
+    //请将NFC包直接传给commandApdu，并将该函数返回值直接返回。
+    fun processCommandApdu(commandApdu: ByteArray?, callback: (Byte, Byte, ByteArray) -> ByteArray): ByteArray {
         if (commandApdu == null) {
             return STATUS_FAILED
         }
-
-        // 简单保护：屏幕活动检查或其它共享状态可以放在这里
-        // if (!SharedState.screenActive) return STATUS_FAILED
-
         // 解析 INS（假设短 APDU: [CLA, INS, P1, P2, Lc, ...data...])
         if (commandApdu.size < 5) {
             return STATUS_BAD_PARAM
         }
 
         val ins = commandApdu[1]
+        val param = commandApdu[2]
         val lc = commandApdu[4].toInt() and 0xFF
         if (commandApdu.size < 5 + lc) {
             return STATUS_BAD_PARAM
         }
         val data = if (lc > 0) commandApdu.copyOfRange(5, 5 + lc) else ByteArray(0)
 
-        // 每次收到命令，重置超时定时器
-        handler.removeCallbacks(resetRunnable)
-        handler.postDelayed(resetRunnable, RECEIVE_TIMEOUT_MS)
-
         return try {
             when (ins) {
                 SELECT_AID -> selectAid(data)
-                INS_INIT -> handleInit(data)
-                INS_CONTINUE -> handleContinue(data)
-                INS_END_WITH_CERT -> handleEnd(data,
-                    INS_END_WITH_CERT, callback
-                )
-                INS_END_WITH_DH -> handleEnd(data,
-                    INS_END_WITH_DH, callback
-                )
-                INS_END_WITH_DH_SIG -> handleEnd(data,
-                    INS_END_WITH_DH_SIG, callback
-                )
+
+                INS_RECV_INIT -> recvInit(data)
+                INS_RECV_CONTINUE -> recvContinue(data)
+                INS_RECV_END ->
+                    recvEnd(data, ins, param, callback)
+
+                INS_SEND_INIT ->
+                    sendInit(ins, param, callback)
+                INS_SEND_CONTINUE -> sendContinue()
+
                 INS_STATUS -> handleStatus()
                 else -> {
                     STATUS_BAD_PARAM
@@ -113,11 +115,33 @@ object NFCHelper {
 
     private fun selectAid(data: ByteArray): ByteArray {
         SharedState.currentStatus = "读卡器连接成功"
-        Log.d(SubmitService.Companion.TAG, "SELECT AID: ${SubmitService.Companion.STATUS_SUCCESS.joinToString(" ") { "%02X".format(it) }}")
-        return STATUS_SUCCESS
+        Log.d("NFC", "SELECT AID: ${data.joinToString(" ") { "%02X".format(it) }}")
+        // TODO: specific session id
+        return byteArrayOf(0x23.toByte(), 0x23.toByte(), 0x23.toByte()) + STATUS_SUCCESS
     }
 
-    private fun handleInit(data: ByteArray): ByteArray {
+    private fun sendInit(type: Byte, param: Byte, callback: (Byte, Byte, ByteArray) -> ByteArray): ByteArray {
+        if(sending) {
+            Log.d("NFC", "WARN: 有send任务尚未完成，企图开启新的send任务")
+        }
+        sending = true
+        val data = callback(type, param, byteArrayOf(0))
+        buffer_o = ByteArrayInputStream(data)
+        return sendContinue()
+    }
+
+    private fun sendContinue(): ByteArray {
+        val tmp_buffer = ByteArray(240) // 每次读取 240 字节
+        var bytesRead: Int = buffer_o.read(tmp_buffer)
+        if(bytesRead == -1) {
+            sending = false
+            bytesRead = 0
+        }
+        return byteArrayOf(bytesRead.toByte()) + tmp_buffer.copyOf(bytesRead) + STATUS_SUCCESS
+    }
+
+
+    private fun recvInit(data: ByteArray): ByteArray {
         // INIT: 重置接收状态。data 可包含元信息（例如 totalLength 的 4 字节整型或 JSON）。
         Log.i(TAG, "INIT received, bytes=${data.size}")
         resetState()
@@ -152,7 +176,7 @@ object NFCHelper {
     }
 
 
-    private fun handleContinue(data: ByteArray): ByteArray {
+    private fun recvContinue(data: ByteArray): ByteArray {
         // CONTINUE: data = [seq(1B), chunk...]
         if (!receiving) {
             Log.w(TAG, "CONTINUE received but not in receiving state")
@@ -197,7 +221,7 @@ object NFCHelper {
         return STATUS_SUCCESS
     }
 
-    private fun handleEnd(data: ByteArray, type: Byte, callback: (Byte, ByteArray) -> Unit): ByteArray {
+    private fun recvEnd(data: ByteArray, type: Byte, param: Byte, callback: (Byte, Byte, ByteArray) -> ByteArray): ByteArray {
         // END: 最后一个 chunk 也可能随 END 一起发送（data = [seq?, chunk...])
         if (!receiving) {
             return STATUS_BAD_PARAM
@@ -208,7 +232,6 @@ object NFCHelper {
             val chunk = if (data.size > 1) data.copyOfRange(1, data.size) else ByteArray(0)
             buffer.write(chunk)
             lastSeq = seq
-        } else {
         }
 
         // 验证（可选）：如果我们知道 expectedTotalLength，先比对大小
@@ -223,12 +246,7 @@ object NFCHelper {
         // 完整数据到达，调用处理器
         val receivedBytes = buffer.toByteArray()
         try {
-            callback(type, receivedBytes);
-//            when (type) {
-//                INS_END_WITH_CERT -> onCertComplete(receivedBytes);
-//                INS_END_WITH_DH -> onDHComplete(receivedBytes);
-//                INS_END_WITH_DH_SIG -> onDHSigComplete(receivedBytes);
-//            }
+            callback(type, param, receivedBytes);
         } catch (e: Exception) {
             Log.e(TAG, "onComplete handler failed", e)
             resetState()
@@ -245,14 +263,13 @@ object NFCHelper {
     /**
      * 清理状态
      */
-    private fun resetState() {
+    fun resetState() {
         receiving = false
         try {
             buffer.reset()
         } catch (e: Exception) { /* ignore */ }
         expectedTotalLength = null
         lastSeq = -1
-        handler.removeCallbacks(resetRunnable)
     }
 
 }

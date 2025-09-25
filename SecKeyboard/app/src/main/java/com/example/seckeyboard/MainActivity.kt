@@ -5,6 +5,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.seckeyboard.protocol.SharedState
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.utils.SettingsManager
 
@@ -83,7 +85,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         }
 
         Button(onClick = {
-            val intent = Intent(context, CertificateActivity::class.java)
+            val intent = Intent(context, NfcActivity::class.java)
             context.startActivity(intent)
         }) {
             Text("证书读取测试")

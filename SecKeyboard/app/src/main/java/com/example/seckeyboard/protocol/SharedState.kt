@@ -3,6 +3,10 @@ package com.example.seckeyboard.protocol
 import java.security.cert.X509Certificate
 
 object SharedState {
+
+    @Volatile
+    var phase: Int = 1
+
     @Volatile
     var currentStatus: String = "等待读卡器靠近..."
 
@@ -18,4 +22,9 @@ object SharedState {
     @Volatile
     var serverDHkey: ByteArray ? = null
 
+    @Volatile
+    var clientDHkey: ByteArray ? = null
+
+    @Volatile
+    var sessionKey: ByteArray ? = null
 }

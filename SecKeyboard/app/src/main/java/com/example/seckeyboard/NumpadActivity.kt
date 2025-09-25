@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
+import com.example.seckeyboard.protocol.SharedState
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.utils.DeviceHelper
 import com.example.seckeyboard.utils.NoiseHelper
@@ -132,9 +133,9 @@ class NumpadActivity : ComponentActivity() {
 
         // 这里进行跳转，把密码通过 Intent 传递给 NfcActivity
         val password = inputSequence.joinToString(separator = "")
-        val intent = Intent(this, NfcActivity::class.java).apply {
-            putExtra("password", password)
-        }
+        SharedState.password = password
+        SharedState.phase = 2
+        val intent = Intent(this, NfcActivity::class.java)
         startActivity(intent)
     }
 }

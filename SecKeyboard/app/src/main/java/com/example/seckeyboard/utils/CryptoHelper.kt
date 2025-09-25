@@ -7,6 +7,7 @@ import java.nio.charset.Charset
 import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
+import java.security.PrivateKey
 import java.security.interfaces.ECPublicKey
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
@@ -54,12 +55,14 @@ object CryptoHelper {
         return hkdfSha256Expand(prk, info, length)
     }
 
-    fun ECDHgen(serverPubBytes: ByteArray) {
+    fun ECDHgen(): KeyPair {
         val kpg = KeyPairGenerator.getInstance("EC")
         kpg.initialize(java.security.spec.ECGenParameterSpec("secp256r1"))
         val kp: KeyPair = kpg.generateKeyPair()
-        val clientPriv = kp.private
-        val clientPub = kp.public
+        return kp
+    }
+
+    fun ECDHcal(serverPubBytes: ByteArray, clientPriv: PrivateKey): ByteArray {
 
         // 3) 从 server_pub_x509 构造 PublicKey 对象
         val kf = KeyFactory.getInstance("EC")
@@ -75,7 +78,10 @@ object CryptoHelper {
         // 5) HKDF -> AES key
         val info = "handshake data".toByteArray()
         val aesKey = hkdfSha256(sharedSecret, info, null, 32) // AES-256 key
+
+        return aesKey
     }
+
     /** AES CBC PKCS5Padding 加密 */
     fun aesEncrypt(data: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
