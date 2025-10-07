@@ -1,9 +1,13 @@
 package com.example.seckeyboard.utils
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Base64
 import android.util.Log
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.security.MessageDigest
 import java.security.PublicKey
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -11,31 +15,6 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 object CertificateHelper {
-
-    /**
-     * 从输入流加载 X.509 证书
-     */
-    fun loadCertificateFromString(certString: String): X509Certificate {
-        val cf = CertificateFactory.getInstance("X.509")
-        val trimmed = certString.trim()
-
-        // 判断是否是 PEM 格式
-        val pem = if (trimmed.startsWith("-----BEGIN CERTIFICATE-----")) {
-            // 去掉 PEM 的头尾，得到 Base64 内容
-            trimmed
-                .replace("-----BEGIN CERTIFICATE-----", "")
-                .replace("-----END CERTIFICATE-----", "")
-                .replace("\\s+".toRegex(), "")
-        } else {
-            trimmed
-        }
-
-        // Base64 解码得到二进制 DER
-        val derBytes = Base64.decode(pem, Base64.DEFAULT)
-
-        // 生成 X509Certificate
-        return cf.generateCertificate(ByteArrayInputStream(derBytes)) as X509Certificate
-    }
 
     /**
      * 从输入流加载 X.509 证书

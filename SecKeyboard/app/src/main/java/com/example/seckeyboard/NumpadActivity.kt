@@ -29,8 +29,7 @@ class NumpadActivity : ComponentActivity() {
     private val keypad = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf("*", "0", "#")
+        listOf("7", "8", "9")
     )
 
     // Compose 状态放这里
@@ -110,7 +109,7 @@ class NumpadActivity : ComponentActivity() {
             isConfirmed = false
         }
 
-        numberA = (0..3).random()
+        numberA = (0..2).random()
         numberB = (0..2).random()
 
         Log.d("Numpad", "开始按钮点击，生成的数字为 $numberA 和 $numberB")
@@ -154,8 +153,7 @@ fun NumpadScreen(
     val digitKeys = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf("*", "0", "#")
+        listOf("7", "8", "9")
     )
 
     Box(
@@ -208,6 +206,14 @@ fun NumpadScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                Button(
+                    onClick = {onDigitPressed("0")},
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .width(60.dp)
+                ) {
+                    Text("0")
+                }
                 Button(
                     onClick = onStartPressed,
                     modifier = Modifier

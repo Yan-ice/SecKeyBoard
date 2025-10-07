@@ -19,15 +19,20 @@ object NFCHelper {
     private const val INS_RECV_INIT: Byte = 0xD0.toByte()
     private const val INS_RECV_CONTINUE: Byte = 0xD1.toByte()
     const val INS_RECV_END: Byte = 0xD2.toByte()
+
     const val INS_SEND_INIT: Byte = 0xB0.toByte()
     private const val INS_SEND_CONTINUE: Byte = 0xB1.toByte()
+    const val INS_BYE: Byte = 0xB2.toByte()
 
     const val INS_RECV_TYPE_CERT: Byte = 0x01 //param
     const val INS_RECV_TYPE_DH: Byte = 0x02 //param
     const val INS_RECV_TYPE_DH_SIG: Byte = 0x03 //param
 
 
-    const val INS_SEND_TYPE_DH: Byte = 0x01 //param
+    const val INS_SEND_TYPE_CERT: Byte = 0x01 //param
+    const val INS_SEND_TYPE_DH: Byte = 0x02 //param
+    const val INS_SEND_TYPE_DH_SIG: Byte = 0x03 //param
+    const val INS_SEND_TYPE_PWD: Byte = 0x04 //param
 
     private const val INS_STATUS: Byte = 0x40
 
@@ -88,6 +93,7 @@ object NFCHelper {
                     sendInit(ins, param, callback)
                 INS_SEND_CONTINUE -> sendContinue()
 
+                INS_BYE -> handleBye(callback)
                 INS_STATUS -> handleStatus()
                 else -> {
                     STATUS_BAD_PARAM
@@ -111,6 +117,14 @@ object NFCHelper {
         resp[5] = STATUS_SUCCESS[1]
         Log.d(TAG, "STATUS requested -> received=$received")
         return resp
+    }
+
+    private fun handleBye(callback: (Byte, Byte, ByteArray) -> ByteArray): ByteArray {
+        SharedState.currentStatus = "会话已结束，可以退出APP"
+
+        callback(INS_BYE, INS_BYE, byteArrayOf(0))
+
+        return STATUS_SUCCESS
     }
 
     private fun selectAid(data: ByteArray): ByteArray {

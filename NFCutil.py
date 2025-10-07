@@ -15,11 +15,16 @@ INS_END = 0xD2
 INS_RECV_INIT = 0xB0
 INS_RECV_CONTINUE = 0xB1
 
+INS_BYE = 0xB2
+
 SEND_CERT = 0x1   # finish transfer, and the transfer item is CERT
 SEND_DH = 0x2     # finish transfer, and the transfer item is ECDH pub
 SEND_DH_SIGNATURE = 0x3
 
-RECV_CLIENT_KEY = 0x1
+RECV_CLIENT_CERT = 0x1
+RECV_CLIENT_DH = 0x2
+RECV_CLIENT_DH_SIGNATURE = 0x3
+RECV_AES_PWD = 0x4
 
 INS_STATUS = 0x40
 
@@ -50,20 +55,10 @@ def wait_for_card():
 def send_apdu(connection, ins, payload=b'1', p1=0x00):
     # CLA=0x00, INS=自定义, P1=0x00, P2=0x00
     apdu = [0x00, ins, p1, 0x00, len(payload)] + list(payload)
-    print(f"准备发送 APDU: {toHexString(apdu)}")
-
-    # for attempt in range(0, 3):
-    #     try:
-    #         data, sw1, sw2 = connection.transmit(apdu)
-    #         print(f"响应: {toHexString(data)}, SW1={sw1:02X}, SW2={sw2:02X}")
-    #         return data, sw1, sw2
-
-    #     except Exception as e:
-    #         print(f"[尝试 {attempt}] 发送 APDU 出错: {repr(e)}")
-    #         time.sleep(0.1)  # 延迟重试
+    # print(f"发送 APDU: {toHexString(apdu)}")
 
     data, sw1, sw2 = connection.transmit(apdu)
-    print(f"响应: {toHexString(data)}, SW1={sw1:02X}, SW2={sw2:02X}")
+    # print(f"响应: {toHexString(data)}, SW1={sw1:02X}, SW2={sw2:02X}")
     return data, sw1, sw2
 
 def send_item(connection, data, typecode):
@@ -106,4 +101,5 @@ def send_select_aid(connection, last_part):
         print("❌ HCE tag responded with error status.")
 
     return 0
+
 

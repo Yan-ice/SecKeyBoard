@@ -1,13 +1,20 @@
 package com.example.seckeyboard.utils
 
+import android.content.Context
 import android.nfc.*
 import android.nfc.tech.Ndef
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.util.Log
+import com.example.seckeyboard.protocol.SharedState
 import java.nio.charset.Charset
 import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
+import java.security.KeyStore
 import java.security.PrivateKey
+import java.security.Signature
+import java.security.cert.Certificate
 import java.security.interfaces.ECPublicKey
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
@@ -19,10 +26,15 @@ import javax.crypto.spec.SecretKeySpec
 object CryptoHelper {
 
     // 简单固定16字节AES密钥（仅示范，实际需安全管理）
-    private val AES_KEY = "1234567890abcdef".toByteArray(Charsets.UTF_8)
     private val AES_IV = "abcdef1234567890".toByteArray(Charsets.UTF_8) // IV
 
-    private val charset = Charset.forName("UTF-8")
+    internal val charset = Charset.forName("UTF-8")
+
+    fun toHexString(b: ByteArray): String {
+        return b.joinToString(" ") {
+            String.format("%02X", it)  // 每个字节转成两位十六进制（大写）
+        }
+    }
 
     // HKDF-SHA256 实现（简化）
     // Extract (salt optional) + Expand
@@ -85,7 +97,17 @@ object CryptoHelper {
     /** AES CBC PKCS5Padding 加密 */
     fun aesEncrypt(data: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        val keySpec = SecretKeySpec(AES_KEY, "AES")
+        val keySpec = SecretKeySpec(SharedState.sessionKey, "AES")
+        val ivSpec = IvParameterSpec(AES_IV)
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec)
+        return cipher.doFinal(data)
+    }
+
+    /** AES CBC PKCS5Padding 加密 */
+    fun aesEncrypt(sdata: String): ByteArray {
+        val data = sdata.toByteArray(charset)
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        val keySpec = SecretKeySpec(SharedState.sessionKey, "AES")
         val ivSpec = IvParameterSpec(AES_IV)
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec)
         return cipher.doFinal(data)
@@ -94,9 +116,59 @@ object CryptoHelper {
     /** AES CBC PKCS5Padding 解密 */
     fun aesDecrypt(data: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        val keySpec = SecretKeySpec(AES_KEY, "AES")
+        val keySpec = SecretKeySpec(SharedState.sessionKey, "AES")
         val ivSpec = IvParameterSpec(AES_IV)
         cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
         return cipher.doFinal(data)
+    }
+
+
+    fun generateAttestedKey(alias: String, challenge: ByteArray) {
+        val keyPairGenerator = KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore"
+        )
+
+        val spec = KeyGenParameterSpec.Builder(
+            alias,
+            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+        )
+            .setDigests(KeyProperties.DIGEST_SHA256)
+            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+            .setAttestationChallenge(challenge) // Attestation Challenge
+            .build()
+
+        keyPairGenerator.initialize(spec)
+        keyPairGenerator.generateKeyPair()
+    }
+
+    fun getAttestationCertificateChain(context: Context, alias: String): Array<Certificate>? {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
+
+        val entry = keyStore.getEntry(alias, null) as? KeyStore.PrivateKeyEntry
+        return entry?.certificateChain
+    }
+    fun attestedKeySignData(alias: String, data: ByteArray): ByteArray? {
+        return try {
+            // 1. 获取 Keystore
+            val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+
+            // 2. 获取私钥
+            val entry = keyStore.getEntry(alias, null) as? KeyStore.PrivateKeyEntry
+            val privateKey = entry?.privateKey ?: return null
+
+            // 3. 创建签名器
+            val signature = Signature.getInstance("SHA256withRSA") // 对 RSA，推荐 SHA256
+            signature.initSign(privateKey)
+
+            // 4. 更新数据
+            signature.update(data)
+
+            // 5. 生成签名
+            signature.sign()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

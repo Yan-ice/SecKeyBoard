@@ -6,17 +6,19 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.nfc.cardemulation.HostApduService
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.example.seckeyboard.protocol.SharedState.certificate
+import com.example.seckeyboard.protocol.SharedState.serverCert
 import com.example.seckeyboard.utils.CertificateHelper
+import com.example.seckeyboard.utils.CryptoHelper
+import com.example.seckeyboard.utils.CryptoHelper.attestedKeySignData
 import com.example.seckeyboard.utils.EventBroadcastHelper.INFO_FINISH_EVENT
 import com.example.seckeyboard.utils.NFCHelper
 import java.security.PublicKey
 import java.security.Signature
+import java.security.cert.X509Certificate
 
 class NfcService : HostApduService() {
 
@@ -30,27 +32,27 @@ class NfcService : HostApduService() {
     override fun onCreate() {
         super.onCreate()
 
-        val channelId = "hce_channel"
-        val channelName = "HCE Service"
-        val channelDescription = "Notifications for HCE service"
-
-        val channel = NotificationChannel(
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = channelDescription
-        }
-
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-
-        val notification = Notification.Builder(this, "hce_channel")
-            .setContentTitle("NFC Service Active")
-            .setContentText("HCE Service running in foreground")
-            .build()
-        startForeground(1, notification)
+//        val channelId = "hce_channel"
+//        val channelName = "HCE Service"
+//        val channelDescription = "Notifications for HCE service"
+//
+//        val channel = NotificationChannel(
+//            channelId,
+//            channelName,
+//            NotificationManager.IMPORTANCE_LOW
+//        ).apply {
+//            description = channelDescription
+//        }
+//
+//        val notificationManager =
+//            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+//        notificationManager.createNotificationChannel(channel)
+//
+//        val notification = Notification.Builder(this, "hce_channel")
+//            .setContentTitle("NFC Service Active")
+//            .setContentText("HCE Service running in foreground")
+//            .build()
+//        startForeground(1, notification)
     }
 
     // 超时处理
@@ -82,9 +84,18 @@ class NfcService : HostApduService() {
                     }
                 }else if(swtype == NFCHelper.INS_SEND_INIT){
                     when(param) {
+                        NFCHelper.INS_SEND_TYPE_CERT -> SharedState.clientCert!!.encoded //TODO
                         NFCHelper.INS_SEND_TYPE_DH -> SharedState.clientDHkey!!
+                        NFCHelper.INS_SEND_TYPE_DH_SIG -> {
+                            attestedKeySignData("my_key", SharedState.clientDHkey!!)!!
+                        }
+                        NFCHelper.INS_SEND_TYPE_PWD -> {
+                            CryptoHelper.aesEncrypt(SharedState.password!!)
+                        }
                         else -> byteArrayOf(0)
                     }
+                }else if(swtype == NFCHelper.INS_BYE){
+                    byteArrayOf(0)
                 }else{
                     byteArrayOf(0)
                 }
@@ -100,8 +111,8 @@ class NfcService : HostApduService() {
     private fun onCertComplete(data: ByteArray): ByteArray {
         Log.i(TAG, "Certificate received, len=${data.size}")
 
-        SharedState.certificate = CertificateHelper.loadCertificateFromBytes(data)
-        certificate?.let { CertificateHelper.printCertificateInfo(TAG, it) }
+        SharedState.serverCert = CertificateHelper.loadCertificateFromBytes(data)
+        serverCert?.let { CertificateHelper.printCertificateInfo(TAG, it) }
         return byteArrayOf(0)
     }
     /**
@@ -110,7 +121,15 @@ class NfcService : HostApduService() {
      */
     private fun onDHComplete(data: ByteArray): ByteArray {
         Log.i(TAG, "DH key received, len=${data.size}")
+
         SharedState.serverDHkey = data
+
+        //Also prepare self certificate here.
+        //Use server DH key as challenge!
+        CryptoHelper.generateAttestedKey("my_key", data)
+        val cert_v = CryptoHelper.getAttestationCertificateChain(this, "my_key")
+        SharedState.clientCert = cert_v?.get(0) as X509Certificate?
+
         return byteArrayOf(0)
     }
 
@@ -119,7 +138,7 @@ class NfcService : HostApduService() {
 
         val signature = data
         try {
-            val publicKey: PublicKey = SharedState.certificate?.publicKey!!
+            val publicKey: PublicKey = SharedState.serverCert?.publicKey!!
             val verif_sig = Signature.getInstance("SHA256withRSA")
             verif_sig.initVerify(publicKey)
             verif_sig.update(SharedState.serverDHkey)

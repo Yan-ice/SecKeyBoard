@@ -27,6 +27,7 @@ import com.example.seckeyboard.protocol.NfcService
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.protocol.SharedState
 import com.example.seckeyboard.utils.CryptoHelper
+import com.example.seckeyboard.utils.CryptoHelper.toHexString
 import com.example.seckeyboard.utils.EventBroadcastHelper.INFO_FINISH_EVENT
 
 class NfcActivity : ComponentActivity() {
@@ -107,16 +108,15 @@ class NfcActivity : ComponentActivity() {
         }
         if(SharedState.phase == 2) {
             val dhClient = CryptoHelper.ECDHgen()
-            Log.d("session", "client DH key is:"+dhClient.public.encoded) //TODO
 
             SharedState.clientDHkey = dhClient.public.encoded
             SharedState.sessionKey = CryptoHelper.ECDHcal(SharedState.serverDHkey!!, dhClient.private)
-            Log.d("session", "session key is:"+Base64.encodeToString(SharedState.sessionKey, Base64.NO_WRAP)) //TODO
+            Log.d("session", "session key is:"+ SharedState.sessionKey?.let { toHexString(it) }) //TODO
         }
 
-        val serviceIntent = Intent(this, NfcService::class.java)
-        ContextCompat.startForegroundService(this, serviceIntent)
-
+//        val serviceIntent = Intent(this, NfcService::class.java)
+//        ContextCompat.startForegroundService(this, serviceIntent)
+        startService(Intent(this, NfcService::class.java))
     }
     override fun onStop() {
         super.onStop()

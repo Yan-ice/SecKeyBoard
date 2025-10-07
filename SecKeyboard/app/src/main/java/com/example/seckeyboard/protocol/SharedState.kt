@@ -17,7 +17,10 @@ object SharedState {
     var password: String? = null
 
     @Volatile
-    var certificate: X509Certificate? = null
+    var serverCert: X509Certificate? = null
+
+    @Volatile
+    var clientCert: X509Certificate? = null
 
     @Volatile
     var serverDHkey: ByteArray ? = null
