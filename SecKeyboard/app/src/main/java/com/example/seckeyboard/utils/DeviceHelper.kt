@@ -9,24 +9,25 @@ import kotlin.math.sin
 
 object DeviceHelper {
 
-    fun buildVibrationPattern(numbers: List<Int>): LongArray {
+    fun buildVibrationPattern(numbers: List<Int>, cycles: Int = 3): LongArray {
 
         val pattern = mutableListOf<Long>()
-        val cycles = 4
 
-        val vibrateDuration = 40L
+        val vibrateDuration = 50L
 
         val cycleDuration = SettingsManager
-            .getVibrationInterval(default = 200L)
+            .getVibrationInterval(default = 200).toLong()
             .coerceAtLeast(vibrateDuration + 10)
 
         pattern.add(100)
+        pattern.add(0)
+        pattern.add(100)
         for (num in numbers) {
             for (i in 0 until cycles) {
-                // 振动时间，前 num 个周期振动，其余静默
+                // vib
                 val vibrateTime = if (i < num) vibrateDuration else 0L
                 pattern.add(vibrateTime)
-                // 静默时间，第一次第一个周期静默0，其他周期静默为周期减振动时长
+                // delay
                 pattern.add(cycleDuration-vibrateTime)
             }
         }

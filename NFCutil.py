@@ -15,7 +15,11 @@ INS_END = 0xD2
 INS_RECV_INIT = 0xB0
 INS_RECV_CONTINUE = 0xB1
 
-INS_BYE = 0xB2
+INS_STATE = 0xB2
+STATE_END = 0x0   # finish transfer, and the transfer item is CERT
+STATE_PHASE1 = 0x1     # finish transfer, and the transfer item is ECDH pub
+STATE_PHASE2 = 0x2
+
 
 SEND_CERT = 0x1   # finish transfer, and the transfer item is CERT
 SEND_DH = 0x2     # finish transfer, and the transfer item is ECDH pub
@@ -102,4 +106,8 @@ def send_select_aid(connection, last_part):
 
     return 0
 
+def send_state(connection, state):
 
+    send_apdu(connection, INS_STATE, b'0', state)
+    
+    return 0

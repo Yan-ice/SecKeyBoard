@@ -11,7 +11,7 @@ object NoiseHelper {
     private const val sampleRate: Int = 44100
     private const val channelCount: Int = 1 // 1 = mono, 2 = stereo
     private const val volume: Float = 0.2f  // 0.0 .. 1.0
-    private const val bufferMs: Int = 200   // 每次生成缓冲的毫秒数
+    private const val bufferMs: Int = 200
 
     fun start(durationMs: Long) {
         val channelConfig = if (channelCount == 1) {

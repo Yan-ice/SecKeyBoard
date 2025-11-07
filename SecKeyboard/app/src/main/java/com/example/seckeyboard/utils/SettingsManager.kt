@@ -13,11 +13,11 @@ object SettingsManager {
         preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
-    fun saveVibrationInterval(ms: Long) {
-        preferences.edit().putLong(KEY_INTERVAL, ms).apply()
+    fun saveVibrationInterval(ms: Int) {
+        preferences.edit().putInt(KEY_INTERVAL, ms).apply()
     }
 
-    fun getVibrationInterval(default: Long = 200): Long {
-        return preferences.getLong(KEY_INTERVAL, default)
+    fun getVibrationInterval(default: Int = 200): Int {
+        return preferences.getInt(KEY_INTERVAL, default)
     }
 }

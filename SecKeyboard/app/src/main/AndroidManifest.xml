@@ -38,6 +38,12 @@
             android:name=".NfcActivity"
             android:exported="false" />
         <activity
+            android:name=".PulseActivity"
+            android:exported="false" />
+        <activity
+            android:name=".SelpadActivity"
+            android:exported="false" />
+        <activity
             android:name=".KeypadActivity"
             android:exported="false" />
         <activity
@@ -46,6 +52,9 @@
         <activity
             android:name=".NumpadActivity"
             android:exported="false" />
+        <activity
+        android:name=".AutoSetActivity"
+        android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

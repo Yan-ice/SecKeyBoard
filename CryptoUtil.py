@@ -151,7 +151,7 @@ def parse_cert_and_print_attestation(cert_bytes: bytes, is_pem: bool = False):
     # print("\n-- teeEnforced: %d child elements --" % len(tee))
     # for item in inspect_authorization_list(tee):
     #     print(item)
-    return cert
+    return cert, ar[4]
 
 # Helper: map security level numeric to name (common mapping in Android)
 def security_level_name(n: int) -> str:

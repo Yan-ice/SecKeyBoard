@@ -9,24 +9,18 @@ import androidx.core.content.ContextCompat
 object EventBroadcastHelper {
 
     const val INFO_FINISH_EVENT = "com.example.app.INFO_FINISH_EVENT"
+    const val MSG_FINISH_EVENT = "com.example.app.MSG_FINISH_EVENT"
 
     private var receiver: BroadcastReceiver? = null
 
-    /**
-     * 发送广播事件
-     */
+
     fun sendEvent(context: Context, event: String) {
         val intent = Intent(event)
         context.sendBroadcast(intent)
     }
 
-    /**
-     * 注册广播接收器
-     * @param context Activity 或 Application context
-     * @param callback 收到事件时回调
-     */
     fun register(context: Context, callback: (String) -> Unit) {
-        if (receiver != null) return // 避免重复注册
+        if (receiver != null) return
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -45,9 +39,6 @@ object EventBroadcastHelper {
         )
     }
 
-    /**
-     * 取消注册广播接收器
-     */
     fun unregister(context: Context) {
         receiver?.let {
             context.unregisterReceiver(it)

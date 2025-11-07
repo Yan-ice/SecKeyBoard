@@ -74,7 +74,6 @@ class KeypadActivity : ComponentActivity() {
         }
 
         if (foundRow == -1 || foundCol == -1) {
-            Log.w("Keypad", "输入的digit不在键盘中: $digit")
             return
         }
 
@@ -83,16 +82,14 @@ class KeypadActivity : ComponentActivity() {
 
         val newRow = (foundRow - numberA).mod(rowCount)
 
-        // 判断是否在左半区或右半区
         val subRangeStart: Int
         val subRangeEnd: Int
 
         if (foundCol < 5) {
-            // 左半区：index 0~4
             subRangeStart = 0
             subRangeEnd = 4
         } else {
-            // 右半区：index 5~9
+
             subRangeStart = 5
             subRangeEnd = 9
         }
@@ -100,15 +97,13 @@ class KeypadActivity : ComponentActivity() {
         val subLength = subRangeEnd - subRangeStart + 1
         val localIndex = foundCol - subRangeStart
 
-        // 局部左移 numberB 次
+
         val newLocalIndex = (localIndex - numberB).mod(subLength)
         val newCol = subRangeStart + newLocalIndex
 
 
         val movedDigit = keypad[newRow][newCol]
         inputSequence.add(movedDigit)
-
-        Log.d("Keypad", "输入数字 $digit 左移 $numberA 位，上移 $numberB 位后变为 $movedDigit")
 
         renderUI()
     }
@@ -122,8 +117,6 @@ class KeypadActivity : ComponentActivity() {
         numberA = (0..4).random()
         numberB = (0..4).random()
 
-        Log.d("Keypad", "开始按钮点击，生成的数字为 $numberA 和 $numberB")
-
         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         if (!vibrator.hasVibrator()) return
 
@@ -135,7 +128,7 @@ class KeypadActivity : ComponentActivity() {
 
     private fun handleConfirm() {
         isConfirmed = true
-        Log.d("Keypad", "确认按钮点击，输入序列为：$inputSequence")
+
         renderUI()
     }
 }
@@ -163,14 +156,14 @@ fun KeypadScreen(
             .padding(16.dp)
     ) {
         val centerX = maxWidth / 2
-        val centerY = maxHeight /5*7 // 顶部三分之一高度处作为圆心
+        val centerY = maxHeight /5*7
         var radius = 450
         digitKeys.forEachIndexed { rowIndex, row ->
 
-            val buttonSize = 48 - rowIndex * 4  // 内圈按钮更小
-            radius -= buttonSize + 5  // 半径递减
+            val buttonSize = 48 - rowIndex * 4
+            radius -= buttonSize + 5
             row.forEachIndexed { i, _ ->
-                val key = row[row.size - 1 - i]  // 逆序取key
+                val key = row[row.size - 1 - i]
 
                 val angleDeg = if (i < 5) {
                     40f + (80f - 40f) * (i.toFloat() / 4f)
@@ -226,7 +219,7 @@ fun KeypadScreen(
                         .width(80.dp)
                         .height(35.dp)
                 ) {
-                    Text("开始")
+                    Text("Start")
                 }
 
                 Button(
@@ -236,7 +229,7 @@ fun KeypadScreen(
                         .width(80.dp)
                         .height(35.dp)
                 ) {
-                    Text("确认")
+                    Text("Confirm")
                 }
             }
 

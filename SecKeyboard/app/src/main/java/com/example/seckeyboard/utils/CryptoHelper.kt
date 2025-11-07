@@ -25,18 +25,17 @@ import javax.crypto.spec.SecretKeySpec
 
 object CryptoHelper {
 
-    // 简单固定16字节AES密钥（仅示范，实际需安全管理）
     private val AES_IV = "abcdef1234567890".toByteArray(Charsets.UTF_8) // IV
 
     internal val charset = Charset.forName("UTF-8")
 
     fun toHexString(b: ByteArray): String {
         return b.joinToString(" ") {
-            String.format("%02X", it)  // 每个字节转成两位十六进制（大写）
+            String.format("%02X", it)
         }
     }
 
-    // HKDF-SHA256 实现（简化）
+    // HKDF-SHA256
     // Extract (salt optional) + Expand
     fun hkdfSha256Extract(salt: ByteArray?, ikm: ByteArray): ByteArray {
         val mac = Mac.getInstance("HmacSHA256")
@@ -76,25 +75,25 @@ object CryptoHelper {
 
     fun ECDHcal(serverPubBytes: ByteArray, clientPriv: PrivateKey): ByteArray {
 
-        // 3) 从 server_pub_x509 构造 PublicKey 对象
+
         val kf = KeyFactory.getInstance("EC")
         val x509Spec = X509EncodedKeySpec(serverPubBytes)
         val serverTempPubKey = kf.generatePublic(x509Spec) as ECPublicKey
 
-        // 4) ECDH 计算 shared secret
+
         val ka = KeyAgreement.getInstance("ECDH")
         ka.init(clientPriv)
         ka.doPhase(serverTempPubKey, true)
         val sharedSecret = ka.generateSecret() // 32-byte raw secret (may be larger in some impls)
 
-        // 5) HKDF -> AES key
+
         val info = "handshake data".toByteArray()
         val aesKey = hkdfSha256(sharedSecret, info, null, 32) // AES-256 key
 
         return aesKey
     }
 
-    /** AES CBC PKCS5Padding 加密 */
+
     fun aesEncrypt(data: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
         val keySpec = SecretKeySpec(SharedState.sessionKey, "AES")
@@ -103,7 +102,7 @@ object CryptoHelper {
         return cipher.doFinal(data)
     }
 
-    /** AES CBC PKCS5Padding 加密 */
+
     fun aesEncrypt(sdata: String): ByteArray {
         val data = sdata.toByteArray(charset)
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
@@ -113,7 +112,7 @@ object CryptoHelper {
         return cipher.doFinal(data)
     }
 
-    /** AES CBC PKCS5Padding 解密 */
+
     fun aesDecrypt(data: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
         val keySpec = SecretKeySpec(SharedState.sessionKey, "AES")
@@ -150,21 +149,17 @@ object CryptoHelper {
     }
     fun attestedKeySignData(alias: String, data: ByteArray): ByteArray? {
         return try {
-            // 1. 获取 Keystore
+
             val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 
-            // 2. 获取私钥
             val entry = keyStore.getEntry(alias, null) as? KeyStore.PrivateKeyEntry
             val privateKey = entry?.privateKey ?: return null
 
-            // 3. 创建签名器
-            val signature = Signature.getInstance("SHA256withRSA") // 对 RSA，推荐 SHA256
+            val signature = Signature.getInstance("SHA256withRSA")
             signature.initSign(privateKey)
 
-            // 4. 更新数据
             signature.update(data)
 
-            // 5. 生成签名
             signature.sign()
         } catch (e: Exception) {
             e.printStackTrace()

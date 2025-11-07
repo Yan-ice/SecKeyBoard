@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import com.example.seckeyboard.NfcActivity
 import com.example.seckeyboard.protocol.SharedState
@@ -28,15 +29,15 @@ import com.example.seckeyboard.utils.CertificateHelper
 import com.example.seckeyboard.utils.CryptoHelper
 import com.example.seckeyboard.utils.DeviceHelper
 import com.example.seckeyboard.utils.NoiseHelper
+import com.example.seckeyboard.utils.SettingsManager
 import kotlinx.coroutines.delay
 import java.security.cert.X509Certificate
 import kotlin.jvm.java
 
-class NumpadActivity : ComponentActivity() {
+class SelpadActivity : ComponentActivity() {
     private val keypad = listOf(
-        listOf("1", "2", "3"),
-        listOf("4", "5", "6"),
-        listOf("7", "8", "9")
+        listOf("A", "B"),
+        listOf("C", "D"),
     )
 
     // Compose 状态放这里
@@ -54,7 +55,7 @@ class NumpadActivity : ComponentActivity() {
         setContent {
             SecKeyboardTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    NumpadScreen(
+                    SelpadScreen(
                         inputSequence = inputSequence,
                         isConfirmed = isConfirmed,
                         showColumnLines = showColumnLines,
@@ -89,25 +90,23 @@ class NumpadActivity : ComponentActivity() {
         }
 
         if (foundRow == -1 || foundCol == -1) {
-            Log.w("Numpad", "输入的digit不在键盘中: $digit")
             return
         }
 
         val colCount = keypad[0].size
         val rowCount = keypad.size
 
-        // 上移 numberA 位（水平移动）
+
         var newRow = (foundRow - numberA) % rowCount
         if (newRow < 0) newRow += rowCount
 
-        // 左移 numberB 位（垂直移动）
+
         var newCol = (foundCol - numberB) % colCount
         if (newCol < 0) newCol += colCount
 
         val movedDigit = keypad[newRow][newCol]
 
         inputSequence.add(movedDigit)
-        Log.d("Numpad", "输入数字 $digit 左移 $numberA 位，上移 $numberB 位后变为 $movedDigit")
 
         if(inputSequence.size < 6) {
             handleStart()
@@ -116,27 +115,26 @@ class NumpadActivity : ComponentActivity() {
 
     private fun handleStart() {
         if (isConfirmed) {
-            // 清空输入，重置状态
+
             inputSequence.clear()
             startTime = System.currentTimeMillis()
             timeText = " "
             isConfirmed = false
         }
 
-        showColumnLines = true //  触发动画
+        showColumnLines = true
 
-        numberA = (0..2).random()
-        numberB = (0..2).random()
+        numberA = (0..1).random()
+        numberB = (0..1).random()
 
         try {
             val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
             if (!vibrator.hasVibrator()) return
 
-            val pattern = DeviceHelper.buildVibrationPattern(listOf(numberA, numberB))
+            val pattern = DeviceHelper.buildVibrationPattern(listOf(numberA, numberB), 2)
             vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
-            NoiseHelper.start(2000)
         } catch (e: Exception) {
-            Log.e("Numpad", "振动失败", e)
+            Log.e("Numpad", "Vib Failed", e)
         }
     }
 
@@ -145,7 +143,7 @@ class NumpadActivity : ComponentActivity() {
         isConfirmed = true
         val password = inputSequence.joinToString(separator = "")
         if(SharedState.phase == 1) {
-            // 这里进行跳转，把密码通过 Intent 传递给 NfcActivity
+
             SharedState.password = password
             SharedState.phase = 2
             val intent = Intent(this, NfcActivity::class.java)
@@ -155,14 +153,14 @@ class NumpadActivity : ComponentActivity() {
 
             val endTime = System.currentTimeMillis()
             timeText = "Time usage: "+ (((endTime-startTime)/100).toFloat()/10)
-            Toast.makeText(this@NumpadActivity, "Your input is $password", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@SelpadActivity, "Your input is $password", Toast.LENGTH_SHORT).show()
         }
     }
 }
 
 
 @Composable
-fun NumpadScreen(
+fun SelpadScreen(
     inputSequence: List<String> = emptyList(),
     timeText: String,
     isConfirmed: Boolean = false,
@@ -173,9 +171,8 @@ fun NumpadScreen(
     onColumnLineDismiss: () -> Unit
 ) {
     val digitKeys = listOf(
-        listOf("1", "2", "3"),
-        listOf("4", "5", "6"),
-        listOf("7", "8", "9")
+        listOf("A", "B"),
+        listOf("C", "D"),
     )
 
     Box(
@@ -183,7 +180,7 @@ fun NumpadScreen(
         contentAlignment = Alignment.Center
     ) {
         if (showColumnLines) {
-            ColumnLineOverlay(
+            SelColumnLineOverlay(
                 modifier = Modifier.fillMaxSize(),
                 onDismiss = onColumnLineDismiss
             )
@@ -220,29 +217,21 @@ fun NumpadScreen(
                         Button(
                             onClick = { onDigitPressed(key) },
                             modifier = Modifier
-                                .padding(8.dp)
-                                .size(80.dp)
+                                .padding(20.dp)
+                                .size(100.dp)
                         ) {
-                            Text(text = key, fontSize = 6.em)
+                            Text(text = key, fontSize = 8.em)
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Button(
-                    onClick = {onDigitPressed("0")},
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .width(60.dp)
-                ) {
-                    Text("0")
-                }
                 Button(
                     onClick = onStartPressed,
                     modifier = Modifier
@@ -266,28 +255,23 @@ fun NumpadScreen(
 }
 
 @Composable
-fun ColumnLineOverlay(modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = null) {
+fun SelColumnLineOverlay(modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = null) {
     var verticalAlpha by remember { mutableStateOf(0f) }
     var horizontalAlpha by remember { mutableStateOf(0f) }
     val maxAlpha = 0.4f
 
     LaunchedEffect(Unit) {
 
-//        animate(0f, 1f, animationSpec = tween(10)) { value, _ ->
-//            verticalAlpha = value
-//        }
-        delay(100)
+        delay(80)
 
-        val cycleDuration = com.example.seckeyboard.utils.SettingsManager
+        val cycleDuration = SettingsManager
             .getVibrationInterval(default = 200)
             .coerceAtLeast(50).toInt()
+
         animate(1f, 1f, animationSpec = tween(cycleDuration)) { value, _ ->
             verticalAlpha = value
         }
         animate(1f, 0f, animationSpec = tween(cycleDuration)) { value, _ ->
-            verticalAlpha = value
-        }
-        animate(0f, 0f, animationSpec = tween(cycleDuration)) { value, _ ->
             verticalAlpha = value
         }
 

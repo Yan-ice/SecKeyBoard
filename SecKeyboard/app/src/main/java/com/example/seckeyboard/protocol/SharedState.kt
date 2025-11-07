@@ -5,10 +5,10 @@ import java.security.cert.X509Certificate
 object SharedState {
 
     @Volatile
-    var phase: Int = 1
+    var phase: Int = 0
 
     @Volatile
-    var currentStatus: String = "等待读卡器靠近..."
+    var currentStatus: String = "Wait for card reader..."
 
     @Volatile
     var screenActive: Boolean = false

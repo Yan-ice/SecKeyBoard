@@ -15,6 +15,7 @@ import com.example.seckeyboard.utils.CertificateHelper
 import com.example.seckeyboard.utils.CryptoHelper
 import com.example.seckeyboard.utils.CryptoHelper.attestedKeySignData
 import com.example.seckeyboard.utils.EventBroadcastHelper.INFO_FINISH_EVENT
+import com.example.seckeyboard.utils.EventBroadcastHelper.MSG_FINISH_EVENT
 import com.example.seckeyboard.utils.NFCHelper
 import java.security.PublicKey
 import java.security.Signature
@@ -25,37 +26,13 @@ class NfcService : HostApduService() {
     companion object {
         const val TAG = "INFO_Service"
 
-        // 超时限制
         private const val RECEIVE_TIMEOUT_MS = 30_000L
     }
 
     override fun onCreate() {
         super.onCreate()
-
-//        val channelId = "hce_channel"
-//        val channelName = "HCE Service"
-//        val channelDescription = "Notifications for HCE service"
-//
-//        val channel = NotificationChannel(
-//            channelId,
-//            channelName,
-//            NotificationManager.IMPORTANCE_LOW
-//        ).apply {
-//            description = channelDescription
-//        }
-//
-//        val notificationManager =
-//            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-//        notificationManager.createNotificationChannel(channel)
-//
-//        val notification = Notification.Builder(this, "hce_channel")
-//            .setContentTitle("NFC Service Active")
-//            .setContentText("HCE Service running in foreground")
-//            .build()
-//        startForeground(1, notification)
     }
 
-    // 超时处理
     private val handler = Handler(Looper.getMainLooper())
     private val resetRunnable = Runnable {
         Log.w(TAG, "InfoService receive timeout — resetting state")
@@ -68,7 +45,6 @@ class NfcService : HostApduService() {
         if (commandApdu == null) Log.i("NFC", "receive empty command.")
         Log.i("NFC", "receive command: "+ commandApdu?.toHexString())
 
-        // 每次收到命令，重置超时定时器
         handler.removeCallbacks(resetRunnable)
         handler.postDelayed(resetRunnable, RECEIVE_TIMEOUT_MS)
 
@@ -95,7 +71,7 @@ class NfcService : HostApduService() {
                         else -> byteArrayOf(0)
                     }
                 }else if(swtype == NFCHelper.INS_BYE){
-                    byteArrayOf(0)
+                    onSendPwdComplete()
                 }else{
                     byteArrayOf(0)
                 }
@@ -104,32 +80,18 @@ class NfcService : HostApduService() {
         return response
     }
 
-    /**
-     * 处理已经完整接收的数据
-     * 这里示例把数据当作 UTF-8 JSON 展示；你可以改为解析 DER / 二进制公钥或其他格式。
-     */
     private fun onCertComplete(data: ByteArray): ByteArray {
         Log.i(TAG, "Certificate received, len=${data.size}")
 
         SharedState.serverCert = CertificateHelper.loadCertificateFromBytes(data)
-        serverCert?.let { CertificateHelper.printCertificateInfo(TAG, it) }
+
         return byteArrayOf(0)
     }
-    /**
-     * 处理已经完整接收的数据
-     * 这里示例把数据当作 UTF-8 JSON 展示；你可以改为解析 DER / 二进制公钥或其他格式。
-     */
+
     private fun onDHComplete(data: ByteArray): ByteArray {
         Log.i(TAG, "DH key received, len=${data.size}")
 
         SharedState.serverDHkey = data
-
-        //Also prepare self certificate here.
-        //Use server DH key as challenge!
-        CryptoHelper.generateAttestedKey("my_key", data)
-        val cert_v = CryptoHelper.getAttestationCertificateChain(this, "my_key")
-        SharedState.clientCert = cert_v?.get(0) as X509Certificate?
-
         return byteArrayOf(0)
     }
 
@@ -148,9 +110,32 @@ class NfcService : HostApduService() {
             val intent = Intent(INFO_FINISH_EVENT)
             sendBroadcast(intent)
 
+            // after phase 1
+            SharedState.serverCert?.let { CertificateHelper.printCertificateInfo("SecKeyboard", it) }
+
+            //Also prepare self certificate here.
+            //Use server DH key as challenge!
+            CryptoHelper.generateAttestedKey("my_key", SharedState.serverDHkey!!)
+            val cert_v = CryptoHelper.getAttestationCertificateChain(this, "my_key")
+            SharedState.clientCert = cert_v?.get(0) as X509Certificate?
+
         } catch (e: Exception) {
             e.printStackTrace()
             Log.d(TAG, "Signature verify failed.")
+        }
+        return byteArrayOf(0)
+    }
+
+    private fun onSendPwdComplete(): ByteArray {
+        try {
+            Log.d(TAG, "Receive bye.")
+
+            val intent = Intent(MSG_FINISH_EVENT)
+            sendBroadcast(intent)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.d(TAG, "Bye failed.")
         }
         return byteArrayOf(0)
     }

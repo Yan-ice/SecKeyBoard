@@ -1,6 +1,7 @@
 package com.example.seckeyboard
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -16,35 +17,37 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
+import com.example.seckeyboard.utils.SettingsManager
 import kotlin.random.Random
 
-class VibrationActivity : ComponentActivity() {
+class AutoSetActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             SecKeyboardTheme {
-                VibrationTestScreen()
+                VibrationAutoSetScreen()
             }
         }
     }
 }
 
 @Composable
-fun VibrationTestScreen() {
-    var vibrationInterval by remember { mutableIntStateOf(200) }
+fun VibrationAutoSetScreen() {
+    var vibrationInterval by remember { mutableIntStateOf(300) }
     var currentVibrationCount by remember { mutableIntStateOf(-1) }
-    var totalTests by remember { mutableIntStateOf(0) }
+    var succeedRecord = 300
+    var succeedTime = 0
     val stats = remember { mutableStateMapOf<Int, Pair<Int, Int>>() }
     val context = LocalContext.current
 
     // Initialize stats for all possible vibration counts (0-10)
     LaunchedEffect(Unit) {
-        (1..5).forEach { count ->
+        (1..3).forEach { count ->
             stats[count] = Pair(0, 0)
         }
 
-        // vibrationInterval
-        vibrationInterval = com.example.seckeyboard.utils.SettingsManager.getVibrationInterval()
+        // 读取设置的 vibrationInterval
+        vibrationInterval = SettingsManager.getVibrationInterval()
     }
 
     Scaffold(
@@ -57,11 +60,6 @@ fun VibrationTestScreen() {
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Tests: $totalTests/100",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.align(Alignment.End)
-                )
                 // Vibration interval input
                 OutlinedTextField(
                     value = vibrationInterval.toString(),
@@ -76,12 +74,11 @@ fun VibrationTestScreen() {
                 // Start button
                 Button(
                     onClick = {
-                        val count = Random.nextInt(1, 6) // Random between 1 and 5
+                        val count = Random.nextInt(if (succeedTime == 0) 1 else 2, 6) // Random between 1 and 5
                         currentVibrationCount = count
                         vibrate(context, count, vibrationInterval.toLong())
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = totalTests < 100
                 ) {
                     Text("Start Vibration Test")
                 }
@@ -103,15 +100,29 @@ fun VibrationTestScreen() {
                         modifier = Modifier.padding(bottom = 4.dp)
                     ) {
                         for (i in 1..5) {
-                            AnswerButton(i, currentVibrationCount) { selectedCount ->
+                            AutoTestAnswerButton(i, currentVibrationCount) { selectedCount ->
                                 if (currentVibrationCount >= 0) {
-                                    val (total, correct) = stats[currentVibrationCount] ?: Pair(0, 0)
-                                    stats[currentVibrationCount] = Pair(
-                                        total + 1,
-                                        if (selectedCount == currentVibrationCount) correct + 1 else correct
-                                    )
+                                    if (selectedCount == currentVibrationCount) {
+                                        succeedTime++
+                                        if (succeedTime >= 3) {
+                                            if(succeedRecord < vibrationInterval) {
+                                                //end setting
+                                                if (vibrationInterval > 0) {
+                                                    SettingsManager.saveVibrationInterval(vibrationInterval+20)
+                                                }
+
+                                                (context as? ComponentActivity)?.finish()
+                                                return@AutoTestAnswerButton
+                                            }
+                                            vibrationInterval = vibrationInterval - 30
+                                            succeedTime = 1
+                                            succeedRecord = vibrationInterval
+                                        }
+                                    } else {
+                                        succeedTime = 0
+                                        vibrationInterval = vibrationInterval + 10
+                                    }
                                     currentVibrationCount = -1 // Reset for next test
-                                    totalTests++
                                 }
                             }
                         }
@@ -119,37 +130,19 @@ fun VibrationTestScreen() {
 
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Statistics display
-                Text("Statistics:", style = MaterialTheme.typography.titleMedium)
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Display stats for each count with attempts
-                Column {
-                    stats.entries.sortedBy { it.key }.forEach { (count, data) ->
-                        if (data.first > 0) {
-                            val accuracy = if (data.first > 0) (data.second.toFloat() / data.first * 100) else 0f
-                            Text(
-                                text = "$count vibrations: ${"%.1f".format(accuracy)}% correct (${data.second}/${data.first})",
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
-                        com.example.seckeyboard.utils.SettingsManager.saveVibrationInterval(vibrationInterval)
+                        if (vibrationInterval > 0) {
+                            SettingsManager.saveVibrationInterval(vibrationInterval)
+                        }
 
                         (context as? ComponentActivity)?.finish()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Save Preferred Interval")
+                    Text("Leave")
                 }
 
             }
@@ -158,7 +151,7 @@ fun VibrationTestScreen() {
 }
 
 @Composable
-fun AnswerButton(
+fun AutoTestAnswerButton(
     count: Int,
     currentVibrationCount: Int,
     onClick: (Int) -> Unit
@@ -203,7 +196,7 @@ private fun vibrate(context: Context, count: Int, interval: Long) {
         }
     }
 
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val effect = VibrationEffect.createWaveform(pattern, -1)
         vibrator.vibrate(effect)
     } else {

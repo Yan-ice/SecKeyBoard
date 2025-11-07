@@ -29,6 +29,7 @@ import com.example.seckeyboard.protocol.SharedState
 import com.example.seckeyboard.utils.CryptoHelper
 import com.example.seckeyboard.utils.CryptoHelper.toHexString
 import com.example.seckeyboard.utils.EventBroadcastHelper.INFO_FINISH_EVENT
+import com.example.seckeyboard.utils.EventBroadcastHelper.MSG_FINISH_EVENT
 
 class NfcActivity : ComponentActivity() {
 
@@ -38,10 +39,15 @@ class NfcActivity : ComponentActivity() {
     private val eventReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == INFO_FINISH_EVENT) {
-//                val msg = intent.getStringExtra("message")
                 Toast.makeText(this@NfcActivity, "Signature verified.", Toast.LENGTH_SHORT).show()
-
+                SharedState.phase = 2
                 val intent = Intent(context, NumpadActivity::class.java)
+                context?.startActivity(intent)
+            }
+            if (intent?.action == MSG_FINISH_EVENT) {
+                Toast.makeText(this@NfcActivity, "Data transfer success.", Toast.LENGTH_SHORT).show()
+                SharedState.phase = 1
+                val intent = Intent(context, MainActivity::class.java)
                 context?.startActivity(intent)
             }
         }
@@ -51,10 +57,9 @@ class NfcActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 检查 NFC 是否启用
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (!nfcAdapter.isEnabled) {
-            Toast.makeText(this, "请先启用NFC功能", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Please activate NFC.", Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
         } else{
             Log.d("Nfc", "NFC available")
@@ -66,11 +71,14 @@ class NfcActivity : ComponentActivity() {
             PendingIntent.FLAG_MUTABLE
         )
 
+        //start phase
+        if (SharedState.phase == 0) {
+            SharedState.phase = 1
+        }
         setContent {
             SecKeyboardTheme {
                 var displayText by remember { mutableStateOf(SharedState.currentStatus) }
 
-                // 自动更新状态信息
                 LaunchedEffect(Unit) {
                     while (true) {
                         displayText = SharedState.currentStatus
@@ -87,8 +95,8 @@ class NfcActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (SharedState.phase == 1) "靠近NFC打开键盘" else "靠近NFC发送输入",
-                            style = MaterialTheme.typography.headlineMedium
+                            text = if (SharedState.phase == 1) "Tap to open keyboard" else "Tap to send input",
+                            style = MaterialTheme.typography.headlineSmall
                         )
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(displayText, style = MaterialTheme.typography.bodyLarge)
@@ -112,6 +120,9 @@ class NfcActivity : ComponentActivity() {
             SharedState.clientDHkey = dhClient.public.encoded
             SharedState.sessionKey = CryptoHelper.ECDHcal(SharedState.serverDHkey!!, dhClient.private)
             Log.d("session", "session key is:"+ SharedState.sessionKey?.let { toHexString(it) }) //TODO
+
+            val filter = IntentFilter(MSG_FINISH_EVENT)
+            registerReceiver(eventReceiver, filter)
         }
 
 //        val serviceIntent = Intent(this, NfcService::class.java)
@@ -120,9 +131,7 @@ class NfcActivity : ComponentActivity() {
     }
     override fun onStop() {
         super.onStop()
-        if (SharedState.phase == 1) {
-            unregisterReceiver(eventReceiver)
-        }
+        unregisterReceiver(eventReceiver)
     }
 
     override fun onResume() {
@@ -137,13 +146,12 @@ class NfcActivity : ComponentActivity() {
 //            )
 //            nfcAdapter.enableForegroundDispatch(this, pendingIntent, null, null)
 //
-//            // 尝试重新设为首选服务（仅系统/厂商签名可用）
 //            val component = ComponentName(this, NfcService::class.java)
 //            CardEmulation.getInstance(nfcAdapter).setPreferredService(this, component)
 //        }
 
         SharedState.screenActive = true
-        SharedState.currentStatus = "等待读卡器靠近..."
+        SharedState.currentStatus = "Hold the card reader close..."
     }
 
     override fun onPause() {
@@ -152,6 +160,6 @@ class NfcActivity : ComponentActivity() {
         //nfcAdapter.disableForegroundDispatch(this)
 
         SharedState.screenActive = false
-        SharedState.currentStatus = "界面不在前台，暂停服务"
+        SharedState.currentStatus = "[Service is paused]"
     }
 }
