@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from smartcard.Exceptions import CardConnectionException, NoCardException
 from smartcard.util import toHexString
 from CryptoUtil import parse_cert_and_print_attestation
-from NFCutil import RECV_AES_PWD, RECV_CLIENT_CERT, RECV_CLIENT_DH, RECV_CLIENT_DH_SIGNATURE, SEND_CERT, SEND_DH, SEND_DH_SIGNATURE, STATE_END, recv_item, send_apdu, send_bye, send_state
+from NFCutil import RECV_AES_PWD, RECV_CLIENT_CERT, RECV_CLIENT_DH, RECV_CLIENT_DH_SIGNATURE, SEND_CERT, SEND_DH, SEND_DH_SIGNATURE, STATE_END, recv_item, send_apdu, send_state
 from NFCutil import wait_for_card, send_select_aid, send_item
 from session import continue_session, get_session_info, init_platform_cert, kill_session, new_session
 import base64

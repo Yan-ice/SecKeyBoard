@@ -65,7 +65,7 @@ fun VibrationTestScreen() {
                 // Vibration interval input
                 OutlinedTextField(
                     value = vibrationInterval.toString(),
-                    onValueChange = { vibrationInterval = it.toIntOrNull() ?: 300 },
+                    onValueChange = { vibrationInterval = it.toIntOrNull() ?: 0 },
                     label = { Text("Vibration interval (ms)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()

@@ -1,6 +1,5 @@
 package com.example.seckeyboard
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -21,15 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.em
-import com.example.seckeyboard.NfcActivity
 import com.example.seckeyboard.protocol.SharedState
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
-import com.example.seckeyboard.utils.CertificateHelper
-import com.example.seckeyboard.utils.CryptoHelper
 import com.example.seckeyboard.utils.DeviceHelper
 import com.example.seckeyboard.utils.NoiseHelper
-import kotlinx.coroutines.delay
-import java.security.cert.X509Certificate
+import kotlin.collections.joinToString
 import kotlin.jvm.java
 
 class NumpadActivity : ComponentActivity() {
@@ -45,6 +40,7 @@ class NumpadActivity : ComponentActivity() {
     private var isConfirmed by mutableStateOf(true)
     private var showColumnLines by mutableStateOf(false)
     private var startTime: Long = 0
+    private var startTime_single: Long = 0
     private var numberA: Int = 0
     private var numberB: Int = 0
 
@@ -109,8 +105,16 @@ class NumpadActivity : ComponentActivity() {
         inputSequence.add(movedDigit)
         Log.d("Numpad", "输入数字 $digit 左移 $numberA 位，上移 $numberB 位后变为 $movedDigit")
 
-        if(inputSequence.size < 6) {
+        if(startTime_single > 0) {
+            var interval = System.currentTimeMillis()-startTime_single;
+            Log.d("sidechannelrec", "$digit, $interval, $numberA, $numberB")
+            // extract log fron logcat, to analyze time side channel
+        }
+
+        if(inputSequence.size < 9) {
             handleStart()
+        }else{
+            handleConfirm()
         }
     }
 
@@ -123,6 +127,7 @@ class NumpadActivity : ComponentActivity() {
             isConfirmed = false
         }
 
+        startTime_single = System.currentTimeMillis()
         showColumnLines = true //  触发动画
 
         numberA = (0..2).random()
@@ -142,20 +147,20 @@ class NumpadActivity : ComponentActivity() {
 
 
     private fun handleConfirm() {
-        isConfirmed = true
         val password = inputSequence.joinToString(separator = "")
-        if(SharedState.phase == 1) {
-            // 这里进行跳转，把密码通过 Intent 传递给 NfcActivity
-            SharedState.password = password
-            SharedState.phase = 2
-            val intent = Intent(this, NfcActivity::class.java)
-            startActivity(intent)
-        }else if (SharedState.phase == 0) {
+        if (SharedState.phase == 0) {
+            isConfirmed = true
             SharedState.password = password
 
             val endTime = System.currentTimeMillis()
             timeText = "Time usage: "+ (((endTime-startTime)/100).toFloat()/10)
             Toast.makeText(this@NumpadActivity, "Your input is $password", Toast.LENGTH_SHORT).show()
+        } else {
+            // 这里进行跳转，把密码通过 Intent 传递给 NfcActivity
+            SharedState.password = password
+            SharedState.phase = 2
+            val intent = Intent(this, NfcActivity::class.java)
+            startActivity(intent)
         }
     }
 }
@@ -203,7 +208,8 @@ fun NumpadScreen(
                 modifier = Modifier.padding(bottom = 20.dp)
             )
 
-            val displayText = "*".repeat(inputSequence.size.coerceAtMost(6))
+            val displayText = if (isConfirmed && timeText.isNotEmpty()) inputSequence.joinToString("")
+                                else "*".repeat(inputSequence.size.coerceAtMost(6))
 
             Text(
                 text = displayText,
@@ -276,11 +282,16 @@ fun ColumnLineOverlay(modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = 
 //        animate(0f, 1f, animationSpec = tween(10)) { value, _ ->
 //            verticalAlpha = value
 //        }
-        delay(100)
+
 
         val cycleDuration = com.example.seckeyboard.utils.SettingsManager
             .getVibrationInterval(default = 200)
             .coerceAtLeast(50).toInt()
+
+        animate(0f, 0f, animationSpec = tween(cycleDuration)) { value, _ ->
+            verticalAlpha = value
+        }
+
         animate(1f, 1f, animationSpec = tween(cycleDuration)) { value, _ ->
             verticalAlpha = value
         }

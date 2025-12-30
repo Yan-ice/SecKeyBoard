@@ -46,7 +46,7 @@ class NfcActivity : ComponentActivity() {
             }
             if (intent?.action == MSG_FINISH_EVENT) {
                 Toast.makeText(this@NfcActivity, "Data transfer success.", Toast.LENGTH_SHORT).show()
-                SharedState.phase = 1
+                SharedState.phase = 0
                 val intent = Intent(context, MainActivity::class.java)
                 context?.startActivity(intent)
             }
@@ -95,7 +95,7 @@ class NfcActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (SharedState.phase == 1) "Tap to open keyboard" else "Tap to send input",
+                            text = if (SharedState.phase == 1) "Tap to open keyboard" else "Tap to send your input",
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Spacer(modifier = Modifier.height(32.dp))

@@ -106,6 +106,7 @@ def send_select_aid(connection, last_part):
 
     return 0
 
+
 def send_state(connection, state):
 
     send_apdu(connection, INS_STATE, b'0', state)

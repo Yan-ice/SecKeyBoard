@@ -1,11 +1,6 @@
 package com.example.seckeyboard.utils
 
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
-
-import kotlin.math.PI
-import kotlin.math.sin
 
 object DeviceHelper {
 
@@ -13,15 +8,17 @@ object DeviceHelper {
 
         val pattern = mutableListOf<Long>()
 
-        val vibrateDuration = 50L
+        val vibrateDuration = SettingsManager
+            .getVibrationAmp(default = 50).toLong()
+            .coerceAtLeast(1)
 
         val cycleDuration = SettingsManager
             .getVibrationInterval(default = 200).toLong()
             .coerceAtLeast(vibrateDuration + 10)
 
-        pattern.add(100)
+        pattern.add(cycleDuration)
         pattern.add(0)
-        pattern.add(100)
+        pattern.add(cycleDuration)
         for (num in numbers) {
             for (i in 0 until cycles) {
                 // vib

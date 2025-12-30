@@ -12,10 +12,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.seckeyboard.protocol.SharedState
 import com.example.seckeyboard.ui.theme.SecKeyboardTheme
 import com.example.seckeyboard.utils.NoiseHelper
 import com.example.seckeyboard.utils.SettingsManager
@@ -49,59 +51,70 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "Welcome")
+        Text(text = "v Set your preferred interval v")
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = {
-            val intent = Intent(context, PulseActivity::class.java)
-            context.startActivity(intent)
-        }) {
-            Text("Generate Vibration")
-        }
-
-        // ✅ 新增跳转按钮
-        Button(onClick = {
-            val intent = Intent(context, SelpadActivity::class.java)
-            context.startActivity(intent)
-        }) {
-            Text("Selection Pad")
-        }
-
-        Button(onClick = {
-            val intent = Intent(context, NumpadActivity::class.java)
-            context.startActivity(intent)
-        }) {
-            Text("Digit Pad")
-        }
-
-        Button(onClick = {
-            val intent = Intent(context, KeypadActivity::class.java)
-            context.startActivity(intent)
-        }) {
-            Text("EN Pad")
-        }
-
-        Button(onClick = {
-            val intent = Intent(context, AutoSetActivity::class.java)
-            context.startActivity(intent)
-        }) {
+        // ===== 第 3 行：Preference =====
+        Button(
+            modifier = Modifier.fillMaxWidth(0.8f),
+            onClick = {
+                val intent = Intent(context, AutoSetActivity::class.java)
+                context.startActivity(intent)
+            }
+        ) {
             Text("Preference")
         }
-        Button(onClick = {
-            val intent = Intent(context, VibrationActivity::class.java)
-            context.startActivity(intent)
-        }) {
-            Text("Vibration Discrimination")
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(text = "v Try vibration-based secure input v")
+        // ===== 第 2 行：SelectionPad + DigitPad 等宽居中 =====
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+        ) {
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, SelpadActivity::class.java)
+                    context.startActivity(intent)
+                }
+            ) { Text("Selection Pad") }
+
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, NumpadActivity::class.java)
+                    context.startActivity(intent)
+                }
+            ) { Text("Digit Pad") }
         }
 
-        Button(onClick = {
-            val intent = Intent(context, NfcActivity::class.java)
-            context.startActivity(intent)
-        }) {
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(text = "v Try the protocol with NFC v")
+        Button(
+            modifier = Modifier.fillMaxWidth(0.8f),
+            onClick = {
+                val intent = Intent(context, NfcActivity::class.java)
+                context.startActivity(intent)
+            }
+        ) {
             Text("Complete Protocol Test")
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(text = "v Other tests v")
+        // ===== 第 4 行：Vibration Discrimination =====
+        Button(
+            modifier = Modifier.fillMaxWidth(0.8f),
+            onClick = {
+                val intent = Intent(context, VibrationActivity::class.java)
+                context.startActivity(intent)
+            }
+        ) {
+            Text("Vibration Discrimination")
         }
     }
 }

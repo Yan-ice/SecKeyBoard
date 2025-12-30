@@ -38,9 +38,6 @@
             android:name=".NfcActivity"
             android:exported="false" />
         <activity
-            android:name=".PulseActivity"
-            android:exported="false" />
-        <activity
             android:name=".SelpadActivity"
             android:exported="false" />
         <activity
