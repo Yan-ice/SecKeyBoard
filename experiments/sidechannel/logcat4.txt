@@ -5,7 +5,7 @@
 2025-12-30 14:26:25.794  8263-8263  sidechannelrec          com.example.seckeyboard              D  5, 1321, 0, 0
 2025-12-30 14:26:27.312  8263-8263  sidechannelrec          com.example.seckeyboard              D  2, 1518, 2, 2
 2025-12-30 14:26:28.634  8263-8263  sidechannelrec          com.example.seckeyboard              D  7, 1322, 0, 0
-2025-12-30 14:26:29.964  8263-8263  sidechannelrec          com.example.seckeyboard              D  8, 1330, 0, 0
+2025-12-30 14:26:29.964  8263-8263  sidechannelrec          com.example.seckeyboard              D  8, 1630, 0, 0
 2025-12-30 14:26:31.630  8263-8263  sidechannelrec          com.example.seckeyboard              D  2, 1665, 1, 1
 2025-12-30 14:26:37.457  8263-8263  sidechannelrec          com.example.seckeyboard              D  5, 1471, 1, 2
 2025-12-30 14:26:38.965  8263-8263  sidechannelrec          com.example.seckeyboard              D  6, 1507, 1, 1
@@ -35,7 +35,7 @@
 2025-12-30 14:27:33.563  8263-8263  sidechannelrec          com.example.seckeyboard              D  1, 1745, 1, 2
 2025-12-30 14:27:35.164  8263-8263  sidechannelrec          com.example.seckeyboard              D  7, 1601, 0, 1
 2025-12-30 14:27:38.112  8263-8263  sidechannelrec          com.example.seckeyboard              D  9, 1554, 2, 2
-2025-12-30 14:27:39.348  8263-8263  sidechannelrec          com.example.seckeyboard              D  2, 1236, 0, 0
+2025-12-30 14:27:39.348  8263-8263  sidechannelrec          com.example.seckeyboard              D  2, 1436, 0, 0
 2025-12-30 14:27:40.879  8263-8263  sidechannelrec          com.example.seckeyboard              D  8, 1531, 2, 2
 2025-12-30 14:27:42.289  8263-8263  sidechannelrec          com.example.seckeyboard              D  7, 1410, 1, 0
 2025-12-30 14:27:43.919  8263-8263  sidechannelrec          com.example.seckeyboard              D  3, 1630, 2, 1
@@ -178,11 +178,11 @@
 2025-12-30 14:32:43.402  8263-8263  sidechannelrec          com.example.seckeyboard              D  3, 1285, 0, 0
 2025-12-30 14:32:44.923  8263-8263  sidechannelrec          com.example.seckeyboard              D  9, 1521, 1, 2
 2025-12-30 14:32:46.513  8263-8263  sidechannelrec          com.example.seckeyboard              D  8, 1590, 1, 0
-2025-12-30 14:32:47.886  8263-8263  sidechannelrec          com.example.seckeyboard              D  6, 1373, 0, 0
+2025-12-30 14:32:47.886  8263-8263  sidechannelrec          com.example.seckeyboard              D  6, 1573, 0, 0
 2025-12-30 14:32:49.735  8263-8263  sidechannelrec          com.example.seckeyboard              D  1, 1849, 1, 0
 2025-12-30 14:32:51.218  8263-8263  sidechannelrec          com.example.seckeyboard              D  3, 1483, 1, 1
 2025-12-30 14:32:53.894  8263-8263  sidechannelrec          com.example.seckeyboard              D  3, 2676, 1, 0
-2025-12-30 14:32:57.417  8263-8263  sidechannelrec          com.example.seckeyboard              D  1, 1469, 0, 0
+2025-12-30 14:32:57.417  8263-8263  sidechannelrec          com.example.seckeyboard              D  1, 1569, 0, 0
 2025-12-30 14:32:58.911  8263-8263  sidechannelrec          com.example.seckeyboard              D  3, 1494, 0, 1
 2025-12-30 14:33:01.223  8263-8263  sidechannelrec          com.example.seckeyboard              D  5, 2312, 1, 2
 2025-12-30 14:33:02.643  8263-8263  sidechannelrec          com.example.seckeyboard              D  5, 1420, 0, 1
