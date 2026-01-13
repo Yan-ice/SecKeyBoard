@@ -6,4 +6,7 @@ matplotlib
 pandas
 scikit-learn
 torch
-csv
+
+noisereduce
+
+seaborn

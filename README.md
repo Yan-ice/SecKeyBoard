@@ -1,30 +1,37 @@
 
-# Environment
+# Repository Structure
+
+```
+SecKeyBoard
+    AndroidApp: contains the android studio project.
+    Host: contains the python backend code.
+    Experiments:
+        Efficiency: Efficiency test result and picture.
+        SideChannel: SideChannel test result and picture.
+        VibrationMonitor: VibrationMonitor test result and picture.
+```
+
+# Setup
 
 Download the driver from:
 
 https://www.acs.com.hk/cn/products/73/acr122u-nfc%E8%AF%BB%E5%86%99%E5%99%A8-usb%E6%8E%A5%E5%8F%A3/
 
-或安装libccid：
-```
-sudo apt-get update
-sudo apt-get install libccid
-```
-
-安装其他内容:
+Install packages:
 ```
 sudo apt-get install python3-dev libusb-dev libpcsclite-dev pcscd pcsc-tools pcscd openssl
 sudo systemctl enable pcscd
 sudo systemctl start pcscd
 
-sudo pip install pyscard
+pip3 install -r requirements.txt
 ```
 
+Install p
 # Find and check your ACR122U
 
 ```
 lsusb | grep ACR
-# 应该看到类似输出：
+# Example output:
 # Bus 001 Device 003: ID 072f:2200 Advanced Card Systems, Ltd ACR122U
 ```
 
@@ -33,10 +40,10 @@ sudo systemctl status pcscd
 sudo pcscd -f -d
 ```
 
-# Trouble shooting: USB busy
+## Trouble shooting: USB busy
 https://bugzilla.redhat.com/show_bug.cgi?id=1555264
 
-请运行以下命令查找 ACR122U 的路径（可能是 1-5, 1-5:1.0 等）：
+Run the following command and find the location of pcscd（maybe 1-5, 1-5:1.0 etc.）：
 ```
 grep -l 072f /sys/bus/usb/devices/*/idVendor | while read vendor_path; do
     device_dir=$(dirname "$vendor_path")
@@ -49,27 +56,38 @@ grep -l 072f /sys/bus/usb/devices/*/idVendor | while read vendor_path; do
 done
 ```
 
-(1-1替换为你找到的1-?)
-
 If you find USB busy, run
 ```
-sudo sh -c "echo '1-1:1.0' > /sys/bus/usb/drivers/pn533_usb/unbind"
+sudo sh -c "echo '1-1:1.0(replace it)' > /sys/bus/usb/drivers/pn533_usb/unbind"
 ```
 
-Also:
+## Trouble shooting: ACR122U is preempted
 
-ACR122U 有时会被 pn533_usb 模块抢占，导致 pcscd 无法识别。执行：
+The ACR122U is often preempted by the kernel's `pn533_usb` module, which prevents the `pcscd` service from recognizing the reader. Follow these steps to resolve the conflict:
+
+**1. Check for Conflicting Modules**
+
+Run the following command to check if the problematic drivers are currently loaded:
 
 lsmod | grep pn533
 
-如果你看到 pn533, nfc, pn533_usb 等模块，执行：
+**2. Manually Unload the Modules**
 
+If you see pn533, nfc, or pn533_usb in the output, unload them using:
+
+```
 sudo modprobe -r pn533_usb pn533 nfc
+```
 
-然后重新启动 pcscd：
+**3. Restart the Smart Card Service**
+
+Restart pcscd to allow it to claim the device:
 
 sudo systemctl restart pcscd
 
-也可以彻底黑名单pn533，只需要写入这个文件：
-echo -e "blacklist pn533_usb\nblacklist pn533\nblacklist nfc" | sudo tee /etc/modprobe.d/blacklist-pn533.conf
+**4. Permanently Blacklist the Modules (Recommended)**
 
+To prevent these drivers from loading automatically in the future, create a blacklist configuration file:
+```
+echo -e "blacklist pn533_usb\nblacklist pn533\nblacklist nfc" | sudo tee /etc/modprobe.d/blacklist-pn533.conf
+```
