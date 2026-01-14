@@ -1,0 +1,100 @@
+
+(* ---------------- CHANNEL AND KEY ---------------- *)
+free usr_sys_channel : channel.
+free human_click_channel : channel.
+free human_vibration_channel : channel [private].
+
+free g : bitstring.        (* const *)
+free msg: bitstring [private].    (* the message that need to be transferred *)
+
+free pk_rsa_Usr, pk_rsa_Sys : bitstring.
+free sk_rsa_Usr, sk_rsa_Sys : bitstring [private].
+
+free sessionKey: bitstring [private].
+
+(* ---------------- DEFINITION ---------------- *)
+
+fun keygen_priv(bitstring): bitstring.   
+(* input: seed，output: privKey *)
+
+fun keyderive_pub(bitstring, bitstring): bitstring.   
+(* input: g and privKey，output: pubKey *)
+
+fun keyderive_session(bitstring, bitstring, bitstring): bitstring. 
+(* input: g, one's priv and other's pub，output: sessionKey *)
+
+fun rsa_enc(bitstring, bitstring): bitstring.
+(* fun rsa_dec(bitstring, bitstring): bitstring. *)
+
+reduc forall m: bitstring, pub: bitstring, priv: bitstring;
+  rsa_dec(rsa_enc(m, pub), priv) = m.
+
+fun edch_enc(bitstring, bitstring): bitstring.
+
+reduc forall m: bitstring, key: bitstring;
+  edch_dec(edch_enc(m, key), key) = m.
+
+event key_User(bitstring).
+event key_System(bitstring).
+
+(* ---------------- QUERY ---------------- *)
+
+(* query for confidentiality *)
+query attacker(sessionKey).
+query attacker(msg).
+
+(* query for integrity *)
+query event(key_System(sessionKey)) ==> event(key_User(sessionKey)).
+query event(key_User(sessionKey)) ==> event(key_System(sessionKey)).
+
+(* ---------------- PROTOCOL ---------------- *)
+
+let Human =
+  in(human_vibration_channel, mask: bitstring);
+  let msg_enc_hum = edch_enc(msg, mask) in
+  out(human_click_channel, msg_enc_hum);
+  0.
+
+let User =
+  new seedU: bitstring;
+  let sk_edch_Usr = keygen_priv(seedU) in
+  let pk_edch_Usr = keyderive_pub(g, sk_edch_Usr) in
+  let pk_edch_Usr_enc = rsa_enc(pk_edch_Usr, sk_rsa_Usr) in
+
+  out(usr_sys_channel, pk_edch_Usr_enc);
+  in(usr_sys_channel, pk_edch_Sys_enc:bitstring);
+
+  let pk_edch_Sys = rsa_dec(pk_edch_Sys_enc, pk_rsa_Sys) in
+  let sessionKey = keyderive_session(g, pk_edch_Sys, sk_edch_Usr) in
+  event key_User(sessionKey);
+
+  new mask: bitstring;
+  out(human_vibration_channel, mask);
+  in(human_click_channel, msg_enc_hum: bitstring);
+  let msg = edch_dec(msg_enc_hum, mask) in
+
+  let msg_enc = edch_enc(msg, sessionKey) in
+  out(usr_sys_channel, msg_enc);
+  0.
+
+let System =
+  new seedS: bitstring;
+
+  in(usr_sys_channel, pk_edch_Usr_enc:bitstring);
+
+  let pk_edch_Usr = rsa_dec(pk_edch_Usr_enc, pk_rsa_Usr) in
+  let sk_edch_Sys = keygen_priv(seedS) in
+  let pk_edch_Sys = keyderive_pub(g, sk_edch_Sys) in
+  let pk_edch_Sys_enc = rsa_enc(pk_edch_Sys, sk_rsa_Sys) in
+
+  out(usr_sys_channel, pk_edch_Sys_enc);
+
+  let sessionKey = keyderive_session(g, sk_edch_Sys, pk_edch_Usr) in
+  event key_System(sessionKey);
+
+  in(usr_sys_channel, msg_enc:bitstring);
+  let msg = edch_dec(msg_enc, sessionKey) in
+  0.
+
+process
+  User | System
