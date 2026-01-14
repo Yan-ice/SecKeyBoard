@@ -56,7 +56,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     ) {
         Text(text = "v Set your preferred interval v")
 
-        // ===== 第 3 行：Preference =====
         Button(
             modifier = Modifier.fillMaxWidth(0.8f),
             onClick = {
@@ -70,7 +69,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(text = "v Try vibration-based secure input v")
-        // ===== 第 2 行：SelectionPad + DigitPad 等宽居中 =====
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
@@ -106,7 +105,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(20.dp))
         Text(text = "v Other tests v")
-        // ===== 第 4 行：Vibration Discrimination =====
+
         Button(
             modifier = Modifier.fillMaxWidth(0.8f),
             onClick = {

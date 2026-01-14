@@ -29,7 +29,6 @@ class AutoSetActivity : ComponentActivity() {
             var isAutoSetScreenEnabled by remember { mutableStateOf(false) }
 
             SecKeyboardTheme {
-                // 使用 Column 作为父容器来实现垂直排列
                 Column {
                     if (!isAutoSetScreenEnabled) {
                         VibrationBScreen(
@@ -65,62 +64,51 @@ class AutoSetActivity : ComponentActivity() {
 
 @Composable
 fun VibrationBScreen(
-    onTestSettings: (Int, Int) -> Unit, // 传递当前滑动条的值
+    onTestSettings: (Int, Int) -> Unit,
     onConfirmSettings: (Int) -> Unit
 ) {
-    // 1. 状态管理
-    // 存储滑动条的值。使用 remember 来确保值在 Recomposition 时保持不变。
-    // 滑动条的值是 Float 类型，但我们将其范围限制在 0.0f 到 50.0f。
     var sliderValue by remember { mutableFloatStateOf(30f) }
 
-    // 将 Float 值转换为 Int，用于显示和传递给回调函数
     val currentValueInt = sliderValue.toInt()
 
-    // 2. 布局：使用 Column 垂直排列所有元素
     Column(
         modifier = Modifier
-            .fillMaxWidth() // 填充整个宽度
-            .padding(16.dp), // 外部边距
-        horizontalAlignment = Alignment.CenterHorizontally // 水平居中对齐
+            .fillMaxWidth() 
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Vibration Amplitude Setting")
-        Spacer(modifier = Modifier.height(32.dp)) // 滑动条和按钮之间的较大间距
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // --- 1. 滑动条和值显示区域 ---
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically // 垂直居中对齐
+            verticalAlignment = Alignment.CenterVertically 
         ) {
-            // 文本框/标签：显示当前选中的值
+
             Text(
                 text = "Value: $currentValueInt",
-                modifier = Modifier.width(80.dp) // 给文本框一个固定宽度
+                modifier = Modifier.width(80.dp)
             )
 
-            Spacer(modifier = Modifier.width(8.dp)) // 间距
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // 滑动条
             Slider(
                 value = sliderValue,
                 onValueChange = { newValue ->
                     sliderValue = newValue
                 },
-                // 设置滑动条的范围：0.0f 到 50.0f
                 valueRange = 10f..50f,
-                // 设置步长。例如，设置 50 个步长，意味着值会是 0, 1, 2, ..., 50
-                steps = 3, // 50 个值 (0到50) 之间有 49 个步长
-                modifier = Modifier.weight(1f) // 占据剩余空间
+                steps = 3, 
+                modifier = Modifier.weight(1f) 
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp)) // 滑动条和按钮之间的较大间距
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // --- 2. 按钮区域 ---
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly // 按钮平均分散
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            // 按钮 1: 测试设置
             Button(
                 onClick = { onTestSettings(currentValueInt, 5) },
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
@@ -128,7 +116,6 @@ fun VibrationBScreen(
                 Text("Try")
             }
 
-            // 按钮 2: 确认设置
             Button(
                 onClick = { onConfirmSettings(currentValueInt) },
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
@@ -144,7 +131,7 @@ fun VibrationBScreen(
             Text("(Test Only) Keep Vibrating")
         }
 
-        Spacer(modifier = Modifier.height(32.dp)) // 滑动条和按钮之间的较大间距
+        Spacer(modifier = Modifier.height(32.dp))
         Text("Choose the smallest possible vibration amplitude that you can perceive.")
 
     }
@@ -164,8 +151,6 @@ fun VibrationAutoSetScreen() {
         (1..3).forEach { count ->
             stats[count] = Pair(0, 0)
         }
-
-        // 读取设置的 vibrationInterval
         vibrationInterval = SettingsManager.getVibrationInterval()
     }
 
@@ -180,7 +165,7 @@ fun VibrationAutoSetScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("Vibration Interval Setting")
-                Spacer(modifier = Modifier.height(32.dp)) // 滑动条和按钮之间的较大间距
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // Vibration interval input
                 OutlinedTextField(

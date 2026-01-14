@@ -34,7 +34,6 @@ class NumpadActivity : ComponentActivity() {
         listOf("7", "8", "9")
     )
 
-    // Compose 状态放这里
     private val inputSequence = mutableStateListOf<String>()
     private var timeText = " "
     private var isConfirmed by mutableStateOf(true)
@@ -85,25 +84,22 @@ class NumpadActivity : ComponentActivity() {
         }
 
         if (foundRow == -1 || foundCol == -1) {
-            Log.w("Numpad", "输入的digit不在键盘中: $digit")
+            Log.w("Numpad", "Digit not in keyboard: $digit")
             return
         }
 
         val colCount = keypad[0].size
         val rowCount = keypad.size
 
-        // 上移 numberA 位（水平移动）
         var newRow = (foundRow - numberA) % rowCount
         if (newRow < 0) newRow += rowCount
 
-        // 左移 numberB 位（垂直移动）
         var newCol = (foundCol - numberB) % colCount
         if (newCol < 0) newCol += colCount
 
         val movedDigit = keypad[newRow][newCol]
 
         inputSequence.add(movedDigit)
-        Log.d("Numpad", "输入数字 $digit 左移 $numberA 位，上移 $numberB 位后变为 $movedDigit")
 
         if(startTime_single > 0) {
             var interval = System.currentTimeMillis()-startTime_single;
@@ -120,7 +116,7 @@ class NumpadActivity : ComponentActivity() {
 
     private fun handleStart() {
         if (isConfirmed) {
-            // 清空输入，重置状态
+            // reset
             inputSequence.clear()
             startTime = System.currentTimeMillis()
             timeText = " "
@@ -128,7 +124,7 @@ class NumpadActivity : ComponentActivity() {
         }
 
         startTime_single = System.currentTimeMillis()
-        showColumnLines = true //  触发动画
+        showColumnLines = true // animation
 
         numberA = (0..2).random()
         numberB = (0..2).random()
@@ -141,7 +137,7 @@ class NumpadActivity : ComponentActivity() {
             vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
             NoiseHelper.start(2000)
         } catch (e: Exception) {
-            Log.e("Numpad", "振动失败", e)
+            Log.e("Numpad", "Vibration failed", e)
         }
     }
 
@@ -156,7 +152,6 @@ class NumpadActivity : ComponentActivity() {
             timeText = "Time usage: "+ (((endTime-startTime)/100).toFloat()/10)
             Toast.makeText(this@NumpadActivity, "Your input is $password", Toast.LENGTH_SHORT).show()
         } else {
-            // 这里进行跳转，把密码通过 Intent 传递给 NfcActivity
             SharedState.password = password
             SharedState.phase = 2
             val intent = Intent(this, NfcActivity::class.java)

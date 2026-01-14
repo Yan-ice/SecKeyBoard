@@ -1,5 +1,7 @@
+# CHISS
+CHISS is a haptic-based input system designed to thwart systematic shoulder surfing. 
 
-# Repository Structure
+## Repository Structure
 
 ```
 SecKeyBoard
@@ -11,7 +13,9 @@ SecKeyBoard
         VibrationMonitor: VibrationMonitor test result and picture.
 ```
 
-# Setup
+## Setup: Host Environment 
+
+Prepare a host computer with Ubuntu 22.04/24.04 installed. Plug the ACR122U card reader into the computer.
 
 Download the driver from:
 
@@ -26,8 +30,7 @@ sudo systemctl start pcscd
 pip3 install -r requirements.txt
 ```
 
-Install p
-# Find and check your ACR122U
+Find and check your ACR122U:
 
 ```
 lsusb | grep ACR
@@ -39,6 +42,20 @@ lsusb | grep ACR
 sudo systemctl status pcscd
 sudo pcscd -f -d
 ```
+
+## Setup: Android Application
+
+Use Android Studio to open the project, generate a `.jks` file and build android application.
+
+Install the android application in a mobile device.
+
+Note: Different mobile phones have various limitations on NFC functionality. If you need to directly and completely reproduce the NFC interaction process, it is recommended to use **Google Pixel 2**. 
+
+## Run Experiment
+
+If you only need to experience the keyboard (human-computer interaction), simply open the installed application and follow the in-app prompts.
+
+ If you need to experience the complete protocol, run `main.py` in `Host` folder on your computer.
 
 ## Trouble shooting: USB busy
 https://bugzilla.redhat.com/show_bug.cgi?id=1555264

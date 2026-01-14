@@ -10,10 +10,8 @@ import java.nio.charset.Charset
 
 object NFCHelper {
 
-    // 包大小限制
-    private const val MAX_TOTAL_SIZE = 10 * 1024 // 安全上限制：最大 10 KB（根据需要调整）
+    private const val MAX_TOTAL_SIZE = 10 * 1024 // maximum package: 10MB
 
-    // INS定义
     private const val SELECT_AID: Byte = 0xA4.toByte()
 
     private const val INS_RECV_INIT: Byte = 0xD0.toByte()
@@ -36,7 +34,7 @@ object NFCHelper {
 
     private const val INS_STATUS: Byte = 0x40
 
-    // ISO-like 状态字（SW1 SW2）
+    // ISO-like（SW1 SW2）
     val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00.toByte())
     val STATUS_NOT_PREPARED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
 
@@ -45,24 +43,22 @@ object NFCHelper {
     private val STATUS_MORE_DATA_PREFIX = 0x61.toByte() // 0x61 XX
 
 
-    // 用于重组接收数据
     @Volatile
     private var receiving = false
 
     private val buffer = ByteArrayOutputStream()
-    private var expectedTotalLength: Int? = null // 可选，INIT 包里发送
+    private var expectedTotalLength: Int? = null
     private var lastSeq: Int = -1
 
-    // 用于重组发送数据
     @Volatile
     private var sending = false
 
     private var buffer_o = ByteArrayInputStream(byteArrayOf(0x00.toByte()))
     private var lastSeq_o: Int = -1
 
-    //处理NFC包请求，如果有一个完整的包被处理，callback将会被调用。
-    // callback格式： ins, param, data，分别对应apdu的第二字节、第三字节(p1)、extend部分
-    //请将NFC包直接传给commandApdu，并将该函数返回值直接返回。
+// Handle NFC packet requests. If a complete packet is processed, the callback will be invoked.
+// Callback format: ins, param, data, corresponding to the second byte, third byte (p1), and extend part of the apdu, respectively.
+// Please pass the NFC packet directly to commandApdu and return the function's return value directly.
     fun processCommandApdu(commandApdu: ByteArray?, callback: (Byte, Byte, ByteArray) -> ByteArray): ByteArray {
         if (commandApdu == null) {
             return STATUS_FAILED
@@ -106,7 +102,6 @@ object NFCHelper {
     }
 
     private fun handleStatus(): ByteArray {
-        // 返回已接收长度（4 字节 big-endian） + SW
         val received = buffer.size()
         val resp = ByteArray(4 + 2)
         resp[0] = ((received shr 24) and 0xFF).toByte()
@@ -160,7 +155,6 @@ object NFCHelper {
         Log.i(TAG, "INIT received, bytes=${data.size}")
         resetState()
 
-        // 解析可能的 total length（如果传过来 4 字节 big-endian）
         if (data.size >= 4) {
             val len = ((data[0].toInt() and 0xFF) shl 24) or
                     ((data[1].toInt() and 0xFF) shl 16) or
