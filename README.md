@@ -108,3 +108,7 @@ To prevent these drivers from loading automatically in the future, create a blac
 ```
 echo -e "blacklist pn533_usb\nblacklist pn533\nblacklist nfc" | sudo tee /etc/modprobe.d/blacklist-pn533.conf
 ```
+
+## Contact
+
+(Anonymous)
